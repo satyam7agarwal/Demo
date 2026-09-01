@@ -432,9 +432,17 @@ public static class GameUIBuilder
     )
     {
         Image image = CreateImage(name, parent, fill, anchorMin, anchorMax, anchoredPosition, size, pivot);
-        image.sprite = GetRoundedSprite();
-        image.type = Image.Type.Sliced;
+        bool premiumCard = name == "ResultCard" || name == "PauseCard";
+        if (premiumCard)
+            ATSPremiumSkin.Apply(image, "panel_ornate", new Vector4(30f, 30f, 30f, 30f));
+        else
+        {
+            image.sprite = GetRoundedSprite();
+            image.type = Image.Type.Sliced;
+        }
         Outline outline = image.gameObject.AddComponent<Outline>();
+        if (premiumCard)
+            outline.enabled = false;
         outline.effectColor = border;
         outline.effectDistance = new Vector2(2f, -2f);
         outline.useGraphicAlpha = true;
@@ -457,6 +465,10 @@ public static class GameUIBuilder
     )
     {
         RectTransform rect = CreatePanel(name, parent, fill, border, anchorMin, anchorMax, pivot, anchoredPosition, size);
+        string skin = (name == "PrimaryButton" || name == "ResumeButton") ? "button_primary" :
+            ((name == "ReplayButton" || name == "LevelsButton" || name == "HomeButton" || name == "RestartButton" || name == "PauseLevelsButton" || name == "PauseHomeButton") ? "button_secondary" : null);
+        if (!string.IsNullOrEmpty(skin))
+            ATSPremiumSkin.Apply(rect.GetComponent<Image>(), skin, new Vector4(30f, 30f, 30f, 30f));
         Button button = rect.gameObject.AddComponent<Button>();
         button.transition = Selectable.Transition.ColorTint;
         Navigation navigation = button.navigation;
