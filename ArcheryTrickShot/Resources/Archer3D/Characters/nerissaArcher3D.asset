@@ -1,0 +1,165 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d8957b21512d53498af87eb7fb63d79, type: 3}
+  m_Name: nerissaArcher3D
+  m_EditorClassIdentifier: Assembly-CSharp::Archer3DRuntimeProfile
+  CharacterId: nerissa
+  DisplayName: Nerissa
+  ArcherPrefab: {fileID: 919132149155446097, guid: c0d56e3184996dc498f6ca5aaea7f278, type: 3}
+  AnimatorController: {fileID: 9100000, guid: 4d7bb4790c5da0647a6446605c0b7f94, type: 2}
+  BowPrefab: {fileID: 7279236981667502247, guid: e11ae5680dc07ca44a361f44196086a0, type: 3}
+  CharacterMaterialOverride: {fileID: 2100000, guid: 523c218061c419c469e0a09a52804620, type: 2}
+  ApplyCharacterMaterialToAllSlots: 1
+  DesiredWorldHeight: 3.6
+  LocalScale: {x: 1, y: 1, z: 1}
+  LocalEulerAngles: {x: 0, y: 90, z: 0}
+  LocalOffset: {x: 0, y: 0, z: 0}
+  AutoScaleToDesiredHeight: 1
+  BowHandBone: 17
+  DrawHandBone: 18
+  SocketBindingMode: 1
+  AutoBowGripPalmReach: 0
+  AutoDrawNockFingerAdvance: 0.68
+  BowGripSocketLocalCorrection: {x: 0, y: 0, z: 0}
+  DrawNockSocketLocalCorrection: {x: 0.05, y: 0, z: 0}
+  AimAngleMultiplier: 1
+  MaxVisualAimAngle: 60
+  AimSmoothTime: 0.04
+  MaxAimSpeed: 1080
+  PoseBlendSmoothTime: 0.055
+  BodyEngagementCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.3
+      value: 0.03
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.55
+      value: 0.24
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.8
+      value: 0.67
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  UpBodyContribution: 0.24
+  DownBodyContribution: 0.28
+  SpineShare: 0.34
+  ChestShare: 0.46
+  UpperChestShare: 0.2
+  HeadAimContribution: 0.08
+  ArmAimWeight: 1
+  PreferShoulderBones: 1
+  BowVisualRelativePath: 
+  SyncExternalBowToBowHand: 1
+  BowBindingMode: 1
+  BowLocalPosition: {x: 0, y: 0, z: 0}
+  BowLocalEulerAngles: {x: 90, y: 180, z: 0}
+  BowLocalScale: {x: 0.75, y: 0.75, z: 0.75}
+  BowScreenPlaneOffset: {x: 0, y: 0}
+  BowCameraDepthOffset: 0.05
+  BowCameraFacingEulerAngles: {x: 0, y: 180, z: 0}
+  BowAimAngleMultiplier: 1
+  BowReleaseCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.34
+      value: 1.16
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.71
+      value: 0.87
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  NockOffsetInDrawHandLocal: {x: 0, y: 0, z: 0}
+  GameplayArrowZOffset: -0.08
+  HeldArrowRelativePath: 
+  PreferAssetHeldArrow: 0
+  IdleStateName: Idle
+  LoadStateName: Load
+  HoldStateName: Hold
+  ReleaseStateName: Release
+  IsDrawingParameter: IsDrawing
+  ReleaseParameter: Release
+  AimAngleParameter: AimAngle
+  DrawAmountParameter: DrawAmount
+  ReleaseFireNormalizedTime: 0.24
+  ReleaseEventFallbackSeconds: 0.35
+  DisableBehaviourTypeNames:
+  - HumanArcherController

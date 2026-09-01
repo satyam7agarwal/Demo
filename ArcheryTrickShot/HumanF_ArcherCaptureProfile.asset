@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07754a8b2d9562742b3ff9103c3470b5, type: 3}
+  m_Name: HumanF_ArcherCaptureProfile
+  m_EditorClassIdentifier: Assembly-CSharp::ArcherCaptureProfile
+  ArcherPrefab: {fileID: 1698742964845347998, guid: 249c135e43948ca4995fc26c238c058b, type: 3}
+  ArcherEulerRotation: {x: 0, y: 90, z: 0}
+  ArcherScale: {x: 1, y: 1, z: 1}
+  Clips:
+  - Id: Idle
+    SourceClip: {fileID: 6417901475737995274, guid: 3da4d4ab4b627ac4c9af1a99dc96164c, type: 3}
+    Loop2D: 1
+    FpsOverride: 0
+  - Id: Load
+    SourceClip: {fileID: 8827267189422676723, guid: 2e32c2d29d100924eaa21b1aff59b350, type: 3}
+    Loop2D: 0
+    FpsOverride: 0
+  - Id: Hold
+    SourceClip: {fileID: 9179782846125406184, guid: 1a7b0598a7ed3044289a129ee5e27d3a, type: 3}
+    Loop2D: 1
+    FpsOverride: 0
+  - Id: Release
+    SourceClip: {fileID: 81301949618695063, guid: 1bf5a1cd4fa918a4d9b257349cae39af, type: 3}
+    Loop2D: 0
+    FpsOverride: 0
+  DefaultFps: 30
+  FrameWidth: 1024
+  FrameHeight: 1024
+  AutoFrame: 1
+  AutoFramePadding: 1.12
+  CameraEulerRotation: {x: 0, y: 0, z: 0}
+  ManualOrthographicSize: 2.5
+  CameraDistance: 10
+  OutputRoot: Assets/ArcheryTrickShot/Art/Sprites/Archer
+  PixelsPerUnit: 100
+  FilterMode: 1
+  KeyLightIntensity: 1.1
+  FillLightIntensity: 0.45

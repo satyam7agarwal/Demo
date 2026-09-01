@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a504b6b4cf6c42469e07be9a709ce1ef, type: 3}
+  m_Name: GameConfig
+  m_EditorClassIdentifier: Assembly-CSharp::GameConfig
+  BaseOrthographicSize: 6.2
+  ArrowSpeed: 12
+  ArrowOutOfBoundsMargin: 0.12
+  ArrowVisualAngleOffset: 0
+  MinimumAimDistance: 0.35
+  MinimumAimAngle: -70
+  MaximumAimAngle: 70
+  FullDrawDistance: 3
+  MinimumDragScreenFraction: 0.02
+  TrajectoryDotCount: 18
+  TrajectoryStartOffset: 0.5
+  TrajectorySpacing: 0.42
+  TrajectoryDotScale: 0.15
+  TrajectoryStartAlpha: 1
+  TrajectoryEndAlpha: 0.6
+  TrajectoryColor: {r: 0.2, g: 1, b: 0.05, a: 1}
+  FullTrajectoryDotCount: 96
+  FullTrajectoryMaxBounces: 8
+  FullTrajectoryMaxDistance: 50
+  FullTrajectorySurfaceOffset: 0.025
+  MusicVolume: 0.28
+  HitResultDelay: 0.32
+  MissFeedbackDelay: 0.3
+  NextArrowDelay: 0.08
+  HitShakeDuration: 0.11
+  HitShakeMagnitude: 0.055
+  MissShakeDuration: 0.07
+  MissShakeMagnitude: 0.025
+  RicochetShakeDuration: 0.055
+  RicochetShakeMagnitude: 0.012
+  HitCameraZoomFactor: 0.985
+  HitCameraZoomDuration: 0.16
+  TargetHitPulseScale: 1.035
+  TargetHitPulseDuration: 0.18
+  MirrorPulseScale: 1.055
+  MirrorPulseDuration: 0.12
+  ArrowTrailTime: 0.11
+  ArrowTrailWidth: 0.028
+  ArrowTrailStartAlpha: 0.55
+  TrajectoryMinPositionDelta: 0.006
+  TrajectoryMinAngleDelta: 0.12
+  UIReferenceResolution: {x: 1920, y: 1080}
+  UIMatchWidthOrHeight: 0.5
+  UIFadeDuration: 0.14
+  UICardPopDuration: 0.22
+  UIFeedbackDuration: 0.52
+  BackgroundTop: {r: 0.06, g: 0.035, b: 0.15, a: 1}
+  BackgroundBottom: {r: 0.13, g: 0.08, b: 0.3, a: 1}
+  PanelColor: {r: 0.12, g: 0.07, b: 0.29, a: 0.96}
+  PanelBorderColor: {r: 0.42, g: 0.2, b: 0.86, a: 0.85}
+  LimeColor: {r: 0.43, g: 1, b: 0, a: 1}
+  YellowColor: {r: 1, g: 0.86, b: 0.03, a: 1}
+  PinkColor: {r: 1, g: 0.24, b: 0.5, a: 1}
+  PrimaryTextColor: {r: 1, g: 1, b: 1, a: 1}
+  SecondaryTextColor: {r: 0.72, g: 0.69, b: 0.84, a: 1}
+  MobileTargetFrameRate: 60

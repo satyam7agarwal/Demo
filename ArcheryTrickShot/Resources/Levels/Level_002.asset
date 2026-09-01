@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6893232cd05807d4ba9e180501d88967, type: 3}
+  m_Name: Level_002
+  m_EditorClassIdentifier: Assembly-CSharp::LevelData
+  LevelNumber: 2
+  MaxShots: 3
+  ArcherPosition: {x: -5, y: -2}
+  Objects:
+  - Type: 0
+    Position: {x: 3.4, y: 1.7}
+    Rotation: 0
+    Scale: {x: 0.42, y: 0.42}
+    Facing: 0
+    Style: 0
+  - Type: 1
+    Position: {x: 0.8, y: -0.3}
+    Rotation: 90
+    Scale: {x: 0.8, y: 0.8}
+    Facing: 0
+    Style: 0
