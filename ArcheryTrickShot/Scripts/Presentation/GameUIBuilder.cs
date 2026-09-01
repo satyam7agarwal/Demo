@@ -197,7 +197,7 @@ public static class GameUIBuilder
             new Vector2(0.5f, 0.5f),
             new Vector2(0.5f, 0.5f),
             Vector2.zero,
-            new Vector2(620f, 430f)
+            new Vector2(680f, 560f)
         );
         AddShadow(view.ResultCard.gameObject, new Color(0f, 0f, 0f, 0.45f), new Vector2(0f, -14f));
 
@@ -207,14 +207,14 @@ public static class GameUIBuilder
         BuildResultStars(view.ResultCard, config, view);
 
         view.ResultInfo = CreateText("ResultInfo", view.ResultCard, "SHOTS SPENT  1 / 3", 25f, config.SecondaryTextColor, FontStyles.Bold);
-        Place(view.ResultInfo.rectTransform, new Vector2(0.5f, 0.48f), new Vector2(0.5f, 0.48f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(560f, 58f));
+        Place(view.ResultInfo.rectTransform, new Vector2(0.5f, 0.57f), new Vector2(0.5f, 0.57f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(560f, 58f));
 
         view.ResultPrimaryButton = CreateButton(
             "PrimaryButton",
             view.ResultCard,
             "NEXT LEVEL  >>",
-            new Vector2(0.5f, 0.27f),
-            new Vector2(0.5f, 0.27f),
+            new Vector2(0.5f, 0.31f),
+            new Vector2(0.5f, 0.31f),
             new Vector2(0.5f, 0.5f),
             Vector2.zero,
             new Vector2(430f, 76f),
@@ -229,8 +229,8 @@ public static class GameUIBuilder
             "ReplayButton",
             view.ResultCard,
             "REPLAY",
-            new Vector2(0.5f, 0.09f),
-            new Vector2(0.5f, 0.09f),
+            new Vector2(0.5f, 0.17f),
+            new Vector2(0.5f, 0.17f),
             new Vector2(0.5f, 0.5f),
             Vector2.zero,
             new Vector2(430f, 62f),
@@ -239,6 +239,16 @@ public static class GameUIBuilder
             config.PrimaryTextColor,
             23f
         );
+
+        view.ResultLevelsButton = CreateButton(
+            "LevelsButton", view.ResultCard, "LEVELS",
+            new Vector2(0.35f, 0.055f), new Vector2(0.35f, 0.055f), new Vector2(0.5f, 0.5f), Vector2.zero,
+            new Vector2(245f, 54f), new Color(0.08f, 0.05f, 0.20f, 1f), config.PanelBorderColor, config.SecondaryTextColor, 19f);
+
+        view.ResultHomeButton = CreateButton(
+            "HomeButton", view.ResultCard, "HOME",
+            new Vector2(0.65f, 0.055f), new Vector2(0.65f, 0.055f), new Vector2(0.5f, 0.5f), Vector2.zero,
+            new Vector2(245f, 54f), new Color(0.08f, 0.05f, 0.20f, 1f), config.PanelBorderColor, config.SecondaryTextColor, 19f);
     }
 
     private static void BuildResultStars(
@@ -377,7 +387,7 @@ public static class GameUIBuilder
             new Vector2(0.5f, 0.5f),
             new Vector2(0.5f, 0.5f),
             Vector2.zero,
-            new Vector2(560f, 370f)
+            new Vector2(600f, 510f)
         );
         AddShadow(view.PauseCard.gameObject, new Color(0f, 0f, 0f, 0.4f), new Vector2(0f, -12f));
 
@@ -393,10 +403,20 @@ public static class GameUIBuilder
 
         view.RestartButton = CreateButton(
             "RestartButton", view.PauseCard, "RESTART LEVEL",
-            new Vector2(0.5f, 0.23f), new Vector2(0.5f, 0.23f), new Vector2(0.5f, 0.5f), Vector2.zero,
+            new Vector2(0.5f, 0.38f), new Vector2(0.5f, 0.38f), new Vector2(0.5f, 0.5f), Vector2.zero,
             new Vector2(400f, 66f), new Color(0.10f, 0.06f, 0.24f, 1f), config.PanelBorderColor,
             config.PrimaryTextColor, 23f
         );
+
+        view.PauseLevelsButton = CreateButton(
+            "PauseLevelsButton", view.PauseCard, "LEVELS",
+            new Vector2(0.5f, 0.22f), new Vector2(0.5f, 0.22f), new Vector2(0.5f, 0.5f), Vector2.zero,
+            new Vector2(400f, 60f), new Color(0.08f, 0.05f, 0.20f, 1f), config.PanelBorderColor, config.SecondaryTextColor, 20f);
+
+        view.PauseHomeButton = CreateButton(
+            "PauseHomeButton", view.PauseCard, "HOME",
+            new Vector2(0.5f, 0.09f), new Vector2(0.5f, 0.09f), new Vector2(0.5f, 0.5f), Vector2.zero,
+            new Vector2(400f, 56f), new Color(0.08f, 0.05f, 0.20f, 1f), config.PanelBorderColor, config.SecondaryTextColor, 19f);
     }
 
     private static RectTransform CreatePanel(

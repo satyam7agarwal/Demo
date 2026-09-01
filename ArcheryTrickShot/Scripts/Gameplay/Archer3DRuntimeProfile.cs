@@ -29,6 +29,10 @@ public sealed class Archer3DRuntimeProfile : ScriptableObject
     [Tooltip("Player-facing name. It is safe to localize or change this value.")]
     public string DisplayName = "Archer";
 
+    [Header("Player Presentation")]
+    [Tooltip("Show this character in the player-facing Character Select screen. Disable for rollback/development-only profiles such as Kevin.")]
+    public bool PlayerSelectable = true;
+
     [Header("Source")]
     public GameObject ArcherPrefab;
     public RuntimeAnimatorController AnimatorController;

@@ -41,6 +41,7 @@ public sealed class GameAudioController : MonoBehaviour
     private AudioSource ricochetSource;
     private Coroutine musicDuckRoutine;
     private float configuredMusicVolume;
+    private bool sfxEnabled = true;
 
     private void Awake()
     {
@@ -221,6 +222,11 @@ public sealed class GameAudioController : MonoBehaviour
             musicSource.Play();
     }
 
+    public void SetSfxEnabled(bool enabled)
+    {
+        sfxEnabled = enabled;
+    }
+
     public void SetMusicVolume(float volume)
     {
         configuredMusicVolume = Mathf.Clamp01(volume);
@@ -266,7 +272,7 @@ public sealed class GameAudioController : MonoBehaviour
 
     public void PlayMirror(int chainCount = 1)
     {
-        if (mirrorClip == null)
+        if (!sfxEnabled || mirrorClip == null)
             return;
 
         if (ricochetSource == null)
@@ -395,7 +401,8 @@ public sealed class GameAudioController : MonoBehaviour
         AudioClip clip,
         float categoryVolume)
     {
-        if (clip == null ||
+        if (!sfxEnabled ||
+            clip == null ||
             sfxSource == null)
         {
             return;

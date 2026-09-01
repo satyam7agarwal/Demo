@@ -65,6 +65,30 @@ public sealed class GameUIController : MonoBehaviour
 
         view.ResultReplayButton.onClick.RemoveAllListeners();
         view.ResultReplayButton.onClick.AddListener(() => { PlayUIClick(); levelManager?.RetryLevel(); });
+
+        if (view.ResultLevelsButton != null)
+        {
+            view.ResultLevelsButton.onClick.RemoveAllListeners();
+            view.ResultLevelsButton.onClick.AddListener(() => { PlayUIClick(); levelManager?.OpenLevelSelect(); });
+        }
+
+        if (view.ResultHomeButton != null)
+        {
+            view.ResultHomeButton.onClick.RemoveAllListeners();
+            view.ResultHomeButton.onClick.AddListener(() => { PlayUIClick(); levelManager?.OpenMainMenu(); });
+        }
+
+        if (view.PauseLevelsButton != null)
+        {
+            view.PauseLevelsButton.onClick.RemoveAllListeners();
+            view.PauseLevelsButton.onClick.AddListener(() => { PlayUIClick(); levelManager?.OpenLevelSelect(); });
+        }
+
+        if (view.PauseHomeButton != null)
+        {
+            view.PauseHomeButton.onClick.RemoveAllListeners();
+            view.PauseHomeButton.onClick.AddListener(() => { PlayUIClick(); levelManager?.OpenMainMenu(); });
+        }
     }
 
     public void PrepareForLevel(int levelNumber, int maxShots)
@@ -166,6 +190,23 @@ public sealed class GameUIController : MonoBehaviour
                     ? assistTeal
                     : config.PanelBorderColor;
         }
+    }
+
+    public void SetGameplayVisible(bool visible)
+    {
+        if (view == null)
+            return;
+
+        if (view.HudGroup != null)
+        {
+            view.HudGroup.gameObject.SetActive(visible);
+            view.HudGroup.alpha = visible ? 1f : 0f;
+            view.HudGroup.interactable = visible;
+            view.HudGroup.blocksRaycasts = visible;
+        }
+
+        if (!visible)
+            HideAllOverlaysImmediate();
     }
 
     public void PlayHitFeedback()

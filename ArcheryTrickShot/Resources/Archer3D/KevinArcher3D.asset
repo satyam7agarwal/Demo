@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Archer3DRuntimeProfile
   CharacterId: kevin
   DisplayName: Kevin
+  PlayerSelectable: 0
   ArcherPrefab: {fileID: 1698742964845347998, guid: 249c135e43948ca4995fc26c238c058b, type: 3}
   AnimatorController: {fileID: 9100000, guid: 4d7bb4790c5da0647a6446605c0b7f94, type: 2}
   BowPrefab: {fileID: 0}

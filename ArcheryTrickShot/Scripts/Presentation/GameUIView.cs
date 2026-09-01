@@ -27,9 +27,13 @@ public sealed class GameUIView
     public Button ResultPrimaryButton;
     public TMP_Text ResultPrimaryButtonText;
     public Button ResultReplayButton;
+    public Button ResultLevelsButton;
+    public Button ResultHomeButton;
 
     public CanvasGroup PauseOverlay;
     public RectTransform PauseCard;
     public Button ResumeButton;
     public Button RestartButton;
+    public Button PauseLevelsButton;
+    public Button PauseHomeButton;
 }

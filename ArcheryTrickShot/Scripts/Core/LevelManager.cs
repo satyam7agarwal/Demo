@@ -28,6 +28,7 @@ public sealed class LevelManager : MonoBehaviour
     private GameConfig config;
     private GameAudioController audioController;
     private GameFeelController gameFeel;
+    private ATSFrontendController frontend;
 
     private LevelState currentState = LevelState.Loading;
     private LevelState stateBeforePause = LevelState.Playing;
@@ -59,7 +60,8 @@ public sealed class LevelManager : MonoBehaviour
         ConfigureCamera();
         gameUI.Initialize(this, config);
         currentLevelIndex = 0;
-        LoadLevel();
+        frontend = ATSFrontendController.Ensure(this, config, bow, gameUI);
+        OpenMainMenu();
     }
 
     private bool ResolveDependencies()
@@ -170,6 +172,10 @@ public sealed class LevelManager : MonoBehaviour
         if (levels == null || levels.Length == 0)
             return;
 
+        frontend?.HideFrontendImmediate();
+        if (bow != null)
+            bow.gameObject.SetActive(true);
+        gameUI?.SetGameplayVisible(true);
         Time.timeScale = 1f;
         StopResolutionRoutine();
         ClearPreviousLevel();
@@ -376,6 +382,7 @@ public sealed class LevelManager : MonoBehaviour
         currentArrow?.Stop();
 
         audioController?.PlayTargetHit();
+        ATSHaptics.Pulse();
         gameFeel?.PlayHitFeedback(
             lastTargetHitResult.IsBullseye);
 
@@ -397,6 +404,13 @@ public sealed class LevelManager : MonoBehaviour
                 ? "TARGET HIT!"
                 : lastTargetHitResult.Label;
 
+        int earnedStars = CalculateStars(shotsUsed, currentLevel.MaxShots);
+        ATSPlayerProgress.RecordCompletion(
+            currentLevel.LevelNumber,
+            earnedStars,
+            currentLevelScore,
+            levels.Length);
+
         gameUI.ShowComplete(
             shotsUsed,
             currentLevel.MaxShots,
@@ -416,6 +430,7 @@ public sealed class LevelManager : MonoBehaviour
             return;
 
         currentShotRicochets++;
+        ATSHaptics.Pulse();
         audioController?.PlayMirror(currentShotRicochets);
         gameFeel?.PlayRicochetFeedback();
         gameUI?.PlayRicochetFeedback(currentShotRicochets);
@@ -472,6 +487,80 @@ public sealed class LevelManager : MonoBehaviour
         gameUI.ShowFailed();
         audioController?.PlayLevelFailed();
         resolutionRoutine = null;
+    }
+
+    public int LevelCount => levels != null ? levels.Length : 0;
+
+    public void StartLevelByNumber(int levelNumber)
+    {
+        if (levels == null || levels.Length == 0)
+            return;
+
+        int index = System.Array.FindIndex(
+            levels,
+            level => level != null && level.LevelNumber == levelNumber);
+
+        if (index < 0)
+            index = Mathf.Clamp(levelNumber - 1, 0, levels.Length - 1);
+
+        currentLevelIndex = index;
+        ATSPlayerProgress.RecordLevelStarted(levels[currentLevelIndex].LevelNumber);
+
+        // Re-resolve the roster selection before every frontend-driven start so
+        // changing Khaem/Nerissa takes effect without restarting Unity or the app.
+        if (bow != null)
+        {
+            bow.gameObject.SetActive(true);
+            bow.Configure(config);
+        }
+
+        LoadLevel();
+    }
+
+    public void OpenMainMenu()
+    {
+        PrepareForFrontend();
+        frontend?.ShowMainMenu();
+    }
+
+    public void OpenLevelSelect()
+    {
+        PrepareForFrontend();
+        frontend?.ShowLevelSelect();
+    }
+
+    public void OpenCharacterSelect()
+    {
+        PrepareForFrontend();
+        frontend?.ShowCharacterSelect();
+    }
+
+    public void OpenSettings()
+    {
+        PrepareForFrontend();
+        frontend?.ShowSettings();
+    }
+
+    private void PrepareForFrontend()
+    {
+        Time.timeScale = 1f;
+        StopResolutionRoutine();
+        ClearPreviousLevel();
+        currentState = LevelState.Loading;
+        bow?.SetInputEnabled(false);
+        if (bow != null)
+            bow.gameObject.SetActive(false);
+        gameUI?.SetGameplayVisible(false);
+        audioController?.ResumeMusic();
+    }
+
+    private static int CalculateStars(int usedShots, int maxShots)
+    {
+        if (usedShots <= 1)
+            return 3;
+        if (usedShots < maxShots)
+            return 2;
+        return 1;
     }
 
     public void ToggleFullTrajectoryPreview()
@@ -534,7 +623,7 @@ public sealed class LevelManager : MonoBehaviour
 
         if (currentLevelIndex >= levels.Length - 1)
         {
-            RestartGame();
+            OpenLevelSelect();
             return;
         }
 
