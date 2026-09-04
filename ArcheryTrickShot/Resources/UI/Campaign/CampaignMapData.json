@@ -1,0 +1,18 @@
+{
+  "chapterTitle": "ANCIENT RUINS",
+  "chapterSubtitle": "MASTER THE ANGLE. OWN THE SHOT.",
+  "mapWidth": 1000,
+  "mapHeight": 600,
+  "nodes": [
+    { "level": 1,  "x": 90,  "y": 455, "title": "FIRST SHOT",       "subtitle": "Find your mark." },
+    { "level": 2,  "x": 205, "y": 390, "title": "STONE GATE",       "subtitle": "Thread the opening." },
+    { "level": 3,  "x": 325, "y": 335, "title": "ANGLE TRIAL",      "subtitle": "Aim beyond the obvious." },
+    { "level": 4,  "x": 445, "y": 235, "title": "RUINED PASS",      "subtitle": "Obstacles enter the path." },
+    { "level": 5,  "x": 565, "y": 175, "title": "MIRROR PASS",      "subtitle": "Use reflections to reach the target." },
+    { "level": 6,  "x": 690, "y": 225, "title": "BROKEN COURT",     "subtitle": "Plan every shot." },
+    { "level": 7,  "x": 805, "y": 315, "title": "ECHOING RUINS",    "subtitle": "Precision under pressure." },
+    { "level": 8,  "x": 720, "y": 430, "title": "SUNKEN ARCH",      "subtitle": "A harder route awaits." },
+    { "level": 9,  "x": 835, "y": 500, "title": "MASTER'S PATH",    "subtitle": "Combine everything you've learned." },
+    { "level": 10, "x": 940, "y": 420, "title": "ANCIENT SENTINEL", "subtitle": "Chapter finale." }
+  ]
+}

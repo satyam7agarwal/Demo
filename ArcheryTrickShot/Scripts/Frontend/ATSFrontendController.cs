@@ -15,6 +15,26 @@ public sealed class ATSFrontendController : MonoBehaviour
 {
     private enum ScreenId { Main, Characters, Levels, Settings }
 
+    [System.Serializable]
+    private sealed class CampaignMapData
+    {
+        public string chapterTitle = "ANCIENT RUINS";
+        public string chapterSubtitle = "MASTER THE ANGLE. OWN THE SHOT.";
+        public float mapWidth = 3000f;
+        public float mapHeight = 820f;
+        public CampaignMapNodeData[] nodes = new CampaignMapNodeData[0];
+    }
+
+    [System.Serializable]
+    private sealed class CampaignMapNodeData
+    {
+        public int level;
+        public float x;
+        public float y;
+        public string title;
+        public string subtitle;
+    }
+
     private static readonly Color GlassPanel = new Color(0.045f, 0.020f, 0.115f, 0.90f);
     private static readonly Color InnerPanel = new Color(0.030f, 0.015f, 0.075f, 0.92f);
     private static readonly Color CardColor = new Color(0.055f, 0.030f, 0.125f, 0.96f);
@@ -40,6 +60,24 @@ public sealed class ATSFrontendController : MonoBehaviour
     private readonly List<CharacterCard> characterCards = new List<CharacterCard>();
     private readonly List<LevelCard> levelCards = new List<LevelCard>();
 
+    // Campaign map state. This replaces the old grid visually while preserving the
+    // same progression/save data and LevelManager gameplay entry points.
+    private CampaignMapData campaignData;
+    private ScrollRect campaignScroll;
+    private RectTransform campaignContent;
+    private RectTransform campaignViewport;
+    private LevelData campaignSelectedLevel;
+    private TMP_Text campaignDetailLevel;
+    private TMP_Text campaignDetailTitle;
+    private TMP_Text campaignDetailDescription;
+    private TMP_Text campaignDetailShots;
+    private TMP_Text campaignDetailScore;
+    private TMP_Text campaignDetailLock;
+    private TMP_Text campaignProgress;
+    private readonly List<Image> campaignDetailStars = new List<Image>(3);
+    private Button campaignPlayButton;
+    private Image campaignPreviewImage;
+
     private sealed class CharacterCard
     {
         public Archer3DRuntimeProfile Profile;
@@ -60,6 +98,8 @@ public sealed class ATSFrontendController : MonoBehaviour
         public TMP_Text Lock;
         public Image LockOverlay;
         public Image Thumbnail;
+        public RectTransform NodeRoot;
+        public TMP_Text Number;
     }
 
     public static ATSFrontendController Ensure(LevelManager manager, GameConfig gameConfig, BowController bow, GameUIController ui)
@@ -82,6 +122,7 @@ public sealed class ATSFrontendController : MonoBehaviour
         gameplayUI = ui;
         roster = ArcherCharacterRoster.LoadDefault();
         levels = Resources.LoadAll<LevelData>("Levels").Where(x => x != null).OrderBy(x => x.LevelNumber).ToArray();
+        campaignData = LoadCampaignMapData();
         ATSPlayerProgress.ApplyPerformanceMode();
 
         if (rootGroup == null)
@@ -94,7 +135,13 @@ public sealed class ATSFrontendController : MonoBehaviour
 
     public void ShowMainMenu() => Show(ScreenId.Main);
     public void ShowCharacterSelect() => Show(ScreenId.Characters);
-    public void ShowLevelSelect() { RefreshLevelCards(); Show(ScreenId.Levels); }
+    public void ShowLevelSelect()
+    {
+        EnsureCampaignSelection();
+        RefreshLevelCards();
+        Show(ScreenId.Levels);
+        StartCoroutine(ScrollCampaignToSelection(false));
+    }
     public void ShowSettings() => Show(ScreenId.Settings);
 
     public void HideFrontendImmediate()
@@ -406,109 +453,270 @@ public sealed class ATSFrontendController : MonoBehaviour
     private void BuildLevelScreen()
     {
         CanvasGroup group = CreateScreen(ScreenId.Levels, "Levels");
-        RectTransform panel = CreatePremiumPanel("LevelsCard", group.transform,
-            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1760f, 950f));
-        AddHeader(panel, "CHOOSE YOUR CHALLENGE", "NEW LEVELS UNLOCK AS YOU PROGRESS");
+        RectTransform root = CreateRect("CampaignRoot", group.transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
 
-        RectTransform viewport = CreateRect("LevelViewport", panel, new Vector2(0f, 0f), new Vector2(0f, 0f), Vector2.zero, Vector2.zero);
-        Place(viewport, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -55f), new Vector2(1600f, 610f));
-        Image viewportFill = viewport.gameObject.AddComponent<Image>();
-        viewportFill.color = new Color(0f, 0f, 0f, 0.02f);
-        viewportFill.raycastTarget = true;
-        viewport.gameObject.AddComponent<RectMask2D>();
+        // V6: full-screen campaign world. The authored map contains environment only.
+        // All mutable UI (route, nodes, stars, locks, top bar, detail panel, chapter rail)
+        // is rendered exactly once by Unity on top of it.
 
-        ScrollRect scroll = viewport.gameObject.AddComponent<ScrollRect>();
-        scroll.horizontal = false;
-        scroll.vertical = true;
-        scroll.movementType = ScrollRect.MovementType.Clamped;
-        scroll.inertia = true;
-        scroll.decelerationRate = 0.14f;
-        scroll.scrollSensitivity = 46f;
-        scroll.viewport = viewport;
+        // ---------- WORLD MAP ----------
+        Image world = CreateImage("CampaignWorld", root, Color.white,
+            new Vector2(0.010f, 0.165f), new Vector2(0.748f, 0.905f), Vector2.zero, Vector2.zero);
+        ATSPremiumSkin.Apply(world, "campaign_world_v6", Vector4.zero, false);
+        world.preserveAspect = false;
+        world.raycastTarget = false;
 
-        RectTransform content = CreateRect("LevelGrid", viewport, new Vector2(0f, 1f), new Vector2(1f, 1f), Vector2.zero, Vector2.zero);
-        content.pivot = new Vector2(0.5f, 1f);
-        content.anchoredPosition = Vector2.zero;
-        GridLayoutGroup grid = content.gameObject.AddComponent<GridLayoutGroup>();
-        grid.cellSize = new Vector2(286f, 268f);
-        grid.spacing = new Vector2(22f, 22f);
-        grid.padding = new RectOffset(38, 38, 20, 20);
-        grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-        grid.constraintCount = 5;
-        grid.childAlignment = TextAnchor.UpperCenter;
-        scroll.content = content;
+        Image worldShade = CreateImage("CampaignWorldShade", root,
+            new Color(0.005f, 0.012f, 0.025f, 0.10f),
+            new Vector2(0.010f, 0.165f), new Vector2(0.748f, 0.905f), Vector2.zero, Vector2.zero);
+        worldShade.raycastTarget = false;
 
+        // One coordinate system for route + nodes. Nothing in this layer overlaps the inspector.
+        campaignViewport = CreateRect("CampaignMapArea", root,
+            new Vector2(0.025f, 0.190f), new Vector2(0.730f, 0.885f), Vector2.zero, Vector2.zero);
+        campaignContent = CreateRect("CampaignContent", campaignViewport, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        campaignScroll = null;
+
+        // Chapter identity plate floats over the map like the reference composition.
+        RectTransform chapterPlate = CreatePanel("CampaignChapterPlate", campaignContent,
+            new Color(0.030f, 0.028f, 0.025f, 0.84f),
+            new Color(config.YellowColor.r, config.YellowColor.g, config.YellowColor.b, 0.78f),
+            new Vector2(0.030f, 0.785f), new Vector2(0.320f, 0.955f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+        ATSPremiumSkin.Apply(chapterPlate.GetComponent<Image>(), "panel_inner", new Vector4(18f, 18f, 18f, 18f));
+        TMP_Text chapterSmall = CreateText("ChapterSmall", chapterPlate, "CHAPTER 1", 18f, config.YellowColor, FontStyles.Bold);
+        Place(chapterSmall.rectTransform, new Vector2(0.08f, 0.57f), new Vector2(0.92f, 0.90f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+        TMP_Text chapterName = CreateText("ChapterName", chapterPlate, "ANCIENT RUINS", 31f, config.PrimaryTextColor, FontStyles.Bold);
+        Place(chapterName.rectTransform, new Vector2(0.05f, 0.10f), new Vector2(0.95f, 0.60f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+
+        // ---------- ROUTE ----------
+        float sourceWidth = campaignData != null && campaignData.mapWidth > 1f ? campaignData.mapWidth : 1000f;
+        float sourceHeight = campaignData != null && campaignData.mapHeight > 1f ? campaignData.mapHeight : 600f;
+        List<Vector2> routePoints = new List<Vector2>();
+        foreach (LevelData level in levels)
+        {
+            CampaignMapNodeData routeNode = ResolveCampaignNode(level.LevelNumber);
+            if (routeNode == null) continue;
+            routePoints.Add(new Vector2(Mathf.Clamp01(routeNode.x / sourceWidth), 1f - Mathf.Clamp01(routeNode.y / sourceHeight)));
+        }
+
+        RectTransform routeShadowRect = CreateRect("CampaignRouteShadow", campaignContent, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        ATSCampaignRouteGraphic routeShadow = routeShadowRect.gameObject.AddComponent<ATSCampaignRouteGraphic>();
+        routeShadow.Configure(routePoints, 15f, 22f, 12f, new Color(0.08f, 0.035f, 0.005f, 0.80f));
+
+        RectTransform routeGoldRect = CreateRect("CampaignRouteGold", campaignContent, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        ATSCampaignRouteGraphic routeGold = routeGoldRect.gameObject.AddComponent<ATSCampaignRouteGraphic>();
+        routeGold.Configure(routePoints, 6f, 22f, 12f, new Color(1.00f, 0.78f, 0.20f, 0.98f));
+
+        // ---------- DYNAMIC LEVEL NODES ----------
         levelCards.Clear();
         foreach (LevelData level in levels)
         {
-            RectTransform card = CreatePanel("Level_" + level.LevelNumber, content, CardColor,
-                new Color(config.PanelBorderColor.r, config.PanelBorderColor.g, config.PanelBorderColor.b, 0.62f),
-                Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
-            ATSPremiumSkin.Apply(card.GetComponent<Image>(), "level_card", new Vector4(26f, 26f, 26f, 26f));
+            CampaignMapNodeData nodeData = ResolveCampaignNode(level.LevelNumber);
+            float rawX = nodeData != null ? nodeData.x : 100f + (level.LevelNumber - 1) * 90f;
+            float rawY = nodeData != null ? nodeData.y : 360f;
+            float nx = Mathf.Clamp01(rawX / sourceWidth);
+            float ny = 1f - Mathf.Clamp01(rawY / sourceHeight);
 
-            Image thumbnail = CreateImage("Thumbnail", card, Color.white,
-                new Vector2(0.08f, 0.47f), new Vector2(0.92f, 0.84f), Vector2.zero, Vector2.zero);
-            if (ATSPremiumSkin.Apply(thumbnail, "level_thumb_ruins", Vector4.zero, false))
-            {
-                thumbnail.preserveAspect = false;
-                float tint = 0.78f + (level.LevelNumber % 4) * 0.05f;
-                thumbnail.color = new Color(tint, tint * 0.94f, tint * 0.82f, 0.92f);
-            }
-            thumbnail.raycastTarget = false;
+            RectTransform nodeRoot = CreateRect("CampaignLevel_" + level.LevelNumber, campaignContent,
+                new Vector2(nx, ny), new Vector2(nx, ny), Vector2.zero, Vector2.zero);
+            nodeRoot.pivot = new Vector2(0.5f, 0.5f);
+            nodeRoot.sizeDelta = new Vector2(148f, 160f);
 
-            TMP_Text number = CreateText("Number", card, "LEVEL " + level.LevelNumber, 25f, config.PrimaryTextColor, FontStyles.Bold);
-            Place(number.rectTransform, new Vector2(0.5f, 0.91f), new Vector2(0.5f, 0.91f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(250f, 40f));
+            Image node = CreateImage("Node", nodeRoot, Color.white,
+                new Vector2(0.5f, 0.62f), new Vector2(0.5f, 0.62f), Vector2.zero, new Vector2(106f, 106f));
+            ATSPremiumSkin.Apply(node, "campaign_node", Vector4.zero, false);
+            Button button = node.gameObject.AddComponent<Button>();
+            button.transition = Selectable.Transition.None;
+            node.gameObject.AddComponent<ATSButtonMotion>();
+            LevelData captured = level;
+            button.onClick.AddListener(() => { Click(); SelectCampaignLevel(captured, false); });
 
-            RectTransform starsRoot = CreateRect("Stars", card, new Vector2(0.5f, 0.33f), new Vector2(0.5f, 0.33f), Vector2.zero, Vector2.zero);
+            TMP_Text number = CreateText("Number", node.transform, level.LevelNumber.ToString(), 36f, Color.white, FontStyles.Bold);
+            Stretch(number.rectTransform, 8f, 8f, 8f, 8f);
+
+            RectTransform starsRoot = CreateRect("Stars", nodeRoot,
+                new Vector2(0.5f, 0.18f), new Vector2(0.5f, 0.18f), Vector2.zero, Vector2.zero);
             starsRoot.pivot = new Vector2(0.5f, 0.5f);
-            starsRoot.sizeDelta = new Vector2(150f, 42f);
+            starsRoot.sizeDelta = new Vector2(132f, 34f);
             List<Image> stars = new List<Image>(3);
             for (int i = 0; i < 3; i++)
             {
                 Image star = CreateImage("Star" + (i + 1), starsRoot, Color.white,
-                    new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(25f + i * 50f, 0f), new Vector2(34f, 34f));
+                    new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(22f + i * 44f, 0f), new Vector2(32f, 32f));
                 ATSPremiumSkin.Apply(star, "star_empty", Vector4.zero, false);
                 star.raycastTarget = false;
                 stars.Add(star);
             }
 
-            TMP_Text score = CreateText("Score", card, "BEST SCORE  0", 15f, config.SecondaryTextColor, FontStyles.Bold);
-            Place(score.rectTransform, new Vector2(0.5f, 0.15f), new Vector2(0.5f, 0.15f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(250f, 30f));
-
-            Image lockOverlay = CreateImage("LockOverlay", card, new Color(0.006f, 0.007f, 0.014f, 0.66f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            Image lockOverlay = CreateImage("LockOverlay", node.transform, new Color(0f, 0f, 0f, 0f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             Image lockIcon = CreateImage("LockIcon", lockOverlay.transform, Color.white,
-                new Vector2(0.5f, 0.54f), new Vector2(0.5f, 0.54f), Vector2.zero, new Vector2(62f, 62f));
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(44f, 44f));
             ATSPremiumSkin.Apply(lockIcon, "lock", Vector4.zero, false);
             lockIcon.raycastTarget = false;
-            TMP_Text lockText = CreateText("Lock", lockOverlay.transform, "LOCKED", 17f, config.YellowColor, FontStyles.Bold);
-            Place(lockText.rectTransform, new Vector2(0.5f, 0.28f), new Vector2(0.5f, 0.28f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(220f, 30f));
 
-            Button button = card.gameObject.AddComponent<Button>();
-            button.transition = Selectable.Transition.None;
-            card.gameObject.AddComponent<ATSButtonMotion>();
-            LevelData captured = level;
-            button.onClick.AddListener(() =>
+            LevelCard entry = new LevelCard
             {
-                if (ATSPlayerProgress.IsLevelUnlocked(captured.LevelNumber))
-                {
-                    Click();
-                    levelManager.StartLevelByNumber(captured.LevelNumber);
-                }
-            });
-
-            LevelCard entry = new LevelCard { Level = level, Button = button, Background = card.GetComponent<Image>(), Border = card.GetComponent<Outline>(), Score = score, Lock = lockText, LockOverlay = lockOverlay, Thumbnail = thumbnail };
+                Level = level,
+                Button = button,
+                Background = node,
+                Border = node.GetComponent<Outline>(),
+                Score = null,
+                Lock = null,
+                LockOverlay = lockOverlay,
+                Thumbnail = null,
+                NodeRoot = nodeRoot,
+                Number = number
+            };
             entry.Stars.AddRange(stars);
             levelCards.Add(entry);
         }
 
-        int rows = Mathf.CeilToInt(levels.Length / 5f);
-        float contentHeight = grid.padding.top + grid.padding.bottom + rows * grid.cellSize.y + Mathf.Max(0, rows - 1) * grid.spacing.y;
-        content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, Mathf.Max(contentHeight, 610f));
+        // ---------- TOP BAR ----------
+        RectTransform topBar = CreatePanel("CampaignTopBar", root,
+            new Color(0.008f, 0.020f, 0.040f, 0.985f),
+            new Color(config.YellowColor.r, config.YellowColor.g, config.YellowColor.b, 0.72f),
+            new Vector2(0.010f, 0.905f), new Vector2(0.990f, 0.995f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+        ATSPremiumSkin.Apply(topBar.GetComponent<Image>(), "panel_inner", new Vector4(10f, 10f, 10f, 10f));
 
-        TMP_Text hint = CreateText("ScrollHint", panel, levels.Length > 10 ? "SCROLL TO EXPLORE MORE LEVELS" : "", 13f, config.SecondaryTextColor, FontStyles.Bold);
-        Place(hint.rectTransform, new Vector2(0.5f, 0.095f), new Vector2(0.5f, 0.095f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(520f, 24f));
+        Button back = CreateButton("CampaignBack", topBar, "BACK",
+            new Vector2(0.012f, 0.16f), new Vector2(0.145f, 0.84f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero,
+            Color.clear, Color.clear, config.PrimaryTextColor, 23f, true, "button_back");
+        Image backIcon = CreateImage("BackIcon", back.transform, Color.white,
+            new Vector2(0.15f, 0.5f), new Vector2(0.15f, 0.5f), Vector2.zero, new Vector2(34f, 34f));
+        ATSPremiumSkin.Apply(backIcon, "icon_back", Vector4.zero, false);
+        backIcon.raycastTarget = false;
+        back.onClick.AddListener(() => { Click(); ShowMainMenu(); });
 
-        AddBackButton(panel, ShowMainMenu);
+        TMP_Text title = CreateText("CampaignTitle", topBar, "CAMPAIGN MAP", 48f, config.PrimaryTextColor, FontStyles.Bold);
+        Place(title.rectTransform, new Vector2(0.30f, 0.34f), new Vector2(0.70f, 0.92f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+        TMP_Text sub = CreateText("CampaignSubtitle", topBar, "ANCIENT TRIALS  •  PRECISION ARCHERY", 16f, config.SecondaryTextColor, FontStyles.Normal);
+        Place(sub.rectTransform, new Vector2(0.32f, 0.05f), new Vector2(0.68f, 0.38f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+
+        RectTransform progressPlate = CreatePanel("CampaignProgressPlate", topBar,
+            new Color(0.012f, 0.028f, 0.055f, 0.96f), config.YellowColor,
+            new Vector2(0.755f, 0.16f), new Vector2(0.895f, 0.84f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+        Image progressStar = CreateImage("ProgressStar", progressPlate, Color.white,
+            new Vector2(0.18f, 0.5f), new Vector2(0.18f, 0.5f), Vector2.zero, new Vector2(38f, 38f));
+        ATSPremiumSkin.Apply(progressStar, "star_filled", Vector4.zero, false);
+        progressStar.raycastTarget = false;
+        campaignProgress = CreateText("CampaignProgress", progressPlate, "", 25f, config.PrimaryTextColor, FontStyles.Bold);
+        Place(campaignProgress.rectTransform, new Vector2(0.32f, 0.12f), new Vector2(0.92f, 0.88f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+
+        Button settings = CreateButton("CampaignSettings", topBar, "",
+            new Vector2(0.925f, 0.16f), new Vector2(0.982f, 0.84f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero,
+            Color.clear, Color.clear, config.PrimaryTextColor, 20f, true, "button_secondary");
+        Image settingsIcon = CreateImage("SettingsIcon", settings.transform, Color.white,
+            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(38f, 38f));
+        ATSPremiumSkin.Apply(settingsIcon, "icon_settings", Vector4.zero, false);
+        settingsIcon.raycastTarget = false;
+        settings.onClick.AddListener(() => { Click(); ShowSettings(); });
+
+        // ---------- LEVEL INSPECTOR ----------
+        RectTransform detail = CreatePanel("CampaignDetail", root,
+            new Color(0.006f, 0.018f, 0.040f, 0.985f), config.YellowColor,
+            new Vector2(0.755f, 0.190f), new Vector2(0.985f, 0.885f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+        ATSPremiumSkin.Apply(detail.GetComponent<Image>(), "panel_ornate", new Vector4(24f, 24f, 24f, 24f));
+
+        campaignDetailLevel = CreateText("DetailLevel", detail, "LEVEL 1", 34f, config.PrimaryTextColor, FontStyles.Bold);
+        Place(campaignDetailLevel.rectTransform, new Vector2(0.07f, 0.855f), new Vector2(0.93f, 0.955f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+        campaignDetailTitle = CreateText("DetailTitle", detail, "FIRST SHOT", 18f, config.SecondaryTextColor, FontStyles.Bold);
+        Place(campaignDetailTitle.rectTransform, new Vector2(0.07f, 0.795f), new Vector2(0.93f, 0.865f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+
+        campaignPreviewImage = CreateImage("LevelPreview", detail, Color.white,
+            new Vector2(0.08f, 0.525f), new Vector2(0.92f, 0.775f), Vector2.zero, Vector2.zero);
+        ATSPremiumSkin.Apply(campaignPreviewImage, "level_thumb_ruins", Vector4.zero, false);
+        campaignPreviewImage.raycastTarget = false;
+
+        RectTransform detailStarsRoot = CreateRect("DetailStars", detail,
+            new Vector2(0.5f, 0.465f), new Vector2(0.5f, 0.465f), Vector2.zero, Vector2.zero);
+        detailStarsRoot.pivot = new Vector2(0.5f, 0.5f);
+        detailStarsRoot.sizeDelta = new Vector2(190f, 46f);
+        campaignDetailStars.Clear();
+        for (int i = 0; i < 3; i++)
+        {
+            Image star = CreateImage("Star" + (i + 1), detailStarsRoot, Color.white,
+                new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(31f + i * 64f, 0f), new Vector2(46f, 46f));
+            ATSPremiumSkin.Apply(star, "star_empty", Vector4.zero, false);
+            star.raycastTarget = false;
+            campaignDetailStars.Add(star);
+        }
+
+        campaignDetailDescription = CreateText("DetailDescription", detail, "", 17f, config.PrimaryTextColor, FontStyles.Normal);
+        campaignDetailDescription.alignment = TextAlignmentOptions.Center;
+        campaignDetailDescription.enableWordWrapping = true;
+        Place(campaignDetailDescription.rectTransform, new Vector2(0.09f, 0.315f), new Vector2(0.91f, 0.425f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+
+        Image detailDivider = CreateImage("DetailDivider", detail,
+            new Color(config.YellowColor.r, config.YellowColor.g, config.YellowColor.b, 0.62f),
+            new Vector2(0.08f, 0.300f), new Vector2(0.92f, 0.300f), Vector2.zero, new Vector2(0f, 2f));
+        detailDivider.raycastTarget = false;
+
+        campaignDetailShots = CreateText("DetailShots", detail, "ARROWS  3", 15f, config.PrimaryTextColor, FontStyles.Bold);
+        campaignDetailShots.alignment = TextAlignmentOptions.Left;
+        Place(campaignDetailShots.rectTransform, new Vector2(0.09f, 0.215f), new Vector2(0.48f, 0.285f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
+        campaignDetailScore = CreateText("DetailScore", detail, "BEST  0", 15f, config.PrimaryTextColor, FontStyles.Bold);
+        campaignDetailScore.alignment = TextAlignmentOptions.Right;
+        Place(campaignDetailScore.rectTransform, new Vector2(0.52f, 0.215f), new Vector2(0.91f, 0.285f), new Vector2(1f, 0.5f), Vector2.zero, Vector2.zero);
+
+        campaignDetailLock = CreateText("DetailLock", detail, "", 12f, config.YellowColor, FontStyles.Bold);
+        campaignDetailLock.enableWordWrapping = true;
+        Place(campaignDetailLock.rectTransform, new Vector2(0.08f, 0.145f), new Vector2(0.92f, 0.205f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+
+        campaignPlayButton = CreateButton("CampaignPlay", detail, "PLAY",
+            new Vector2(0.08f, 0.035f), new Vector2(0.92f, 0.135f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero,
+            config.LimeColor, config.LimeColor, Color.white, 30f, true, "button_primary");
+        campaignPlayButton.onClick.AddListener(StartSelectedCampaignLevel);
+
+        // ---------- CHAPTER RAIL ----------
+        RectTransform chapterRail = CreatePanel("CampaignChapterRail", root,
+            new Color(0.006f, 0.015f, 0.032f, 0.99f),
+            new Color(config.YellowColor.r, config.YellowColor.g, config.YellowColor.b, 0.48f),
+            new Vector2(0.010f, 0.018f), new Vector2(0.990f, 0.155f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+        ATSPremiumSkin.Apply(chapterRail.GetComponent<Image>(), "panel_inner", new Vector4(12f, 12f, 12f, 12f));
+        CreateCampaignChapterTab(chapterRail, 0, "CHAPTER 1", "ANCIENT RUINS", true);
+        CreateCampaignChapterTab(chapterRail, 1, "CHAPTER 2", "MYSTIC FOREST", false);
+        CreateCampaignChapterTab(chapterRail, 2, "CHAPTER 3", "FROZEN PEAKS", false);
+        CreateCampaignChapterTab(chapterRail, 3, "CHAPTER 4", "DRAGON'S LAIR", false);
+
+        EnsureCampaignSelection();
+        UpdateCampaignDetail();
+    }
+
+    private void CreateCampaignChapterTab(RectTransform parent, int index, string heading, string subtitle, bool active)
+    {
+        const float left = 0.018f;
+        const float gap = 0.012f;
+        const float width = 0.232f;
+        float x0 = left + index * (width + gap);
+        float x1 = x0 + width;
+
+        RectTransform tab = CreatePanel("ChapterTab" + (index + 1), parent,
+            active ? new Color(0.065f, 0.050f, 0.025f, 0.98f) : new Color(0.012f, 0.028f, 0.055f, 0.96f),
+            active ? config.YellowColor : new Color(0.30f, 0.38f, 0.50f, 0.72f),
+            new Vector2(x0, 0.16f), new Vector2(x1, 0.84f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+        ATSPremiumSkin.Apply(tab.GetComponent<Image>(), "panel_inner", new Vector4(18f, 18f, 18f, 18f));
+
+        if (index == 0)
+        {
+            Image thumb = CreateImage("ChapterThumb", tab, Color.white,
+                new Vector2(0.02f, 0.08f), new Vector2(0.35f, 0.92f), Vector2.zero, Vector2.zero);
+            ATSPremiumSkin.Apply(thumb, "level_thumb_ruins", Vector4.zero, false);
+            thumb.raycastTarget = false;
+        }
+        else
+        {
+            Image lockIcon = CreateImage("ChapterLock", tab, Color.white,
+                new Vector2(0.15f, 0.5f), new Vector2(0.15f, 0.5f), Vector2.zero, new Vector2(34f, 34f));
+            ATSPremiumSkin.Apply(lockIcon, "lock", Vector4.zero, false);
+            lockIcon.raycastTarget = false;
+        }
+
+        TMP_Text h = CreateText("Heading", tab, heading, 18f, active ? config.PrimaryTextColor : new Color(0.80f, 0.82f, 0.86f, 1f), FontStyles.Bold);
+        h.alignment = TextAlignmentOptions.Left;
+        Place(h.rectTransform, new Vector2(0.39f, 0.48f), new Vector2(0.94f, 0.82f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
+        TMP_Text st = CreateText("Subtitle", tab, subtitle, 14f, active ? config.PrimaryTextColor : config.SecondaryTextColor, FontStyles.Normal);
+        st.alignment = TextAlignmentOptions.Left;
+        Place(st.rectTransform, new Vector2(0.39f, 0.14f), new Vector2(0.94f, 0.50f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
     }
 
     private void BuildSettingsScreen()
@@ -655,35 +863,237 @@ public sealed class ATSFrontendController : MonoBehaviour
 
     private void RefreshLevelCards()
     {
+        EnsureCampaignSelection();
+
         int latestUnlocked = 1;
+        int totalStars = 0;
         foreach (LevelCard card in levelCards)
         {
             if (ATSPlayerProgress.IsLevelUnlocked(card.Level.LevelNumber))
                 latestUnlocked = Mathf.Max(latestUnlocked, card.Level.LevelNumber);
+            totalStars += ATSPlayerProgress.GetBestStars(card.Level.LevelNumber);
         }
 
         foreach (LevelCard card in levelCards)
         {
             bool unlocked = ATSPlayerProgress.IsLevelUnlocked(card.Level.LevelNumber);
             int stars = ATSPlayerProgress.GetBestStars(card.Level.LevelNumber);
-            bool latest = unlocked && card.Level.LevelNumber == latestUnlocked;
+            bool completed = stars > 0;
+            bool selected = campaignSelectedLevel != null && card.Level.LevelNumber == campaignSelectedLevel.LevelNumber;
+            bool boss = card.Level.LevelNumber > 0 && card.Level.LevelNumber % 10 == 0;
 
-            card.Button.interactable = unlocked;
-            card.LockOverlay.gameObject.SetActive(!unlocked);
-            card.Lock.gameObject.SetActive(!unlocked);
-            card.Score.text = "BEST  " + ATSPlayerProgress.GetBestScore(card.Level.LevelNumber).ToString("N0");
-            string levelSkin = !unlocked ? "level_card_locked" : (latest ? "level_card_latest" : "level_card");
-            ATSPremiumSkin.Apply(card.Background, levelSkin, new Vector4(26f, 26f, 26f, 26f));
-            if (card.Border != null)
-                card.Border.enabled = false;
+            // Keep locked nodes inspectable; only PLAY is disabled. This is friendlier on touch devices.
+            card.Button.interactable = true;
+            if (card.LockOverlay != null)
+                card.LockOverlay.gameObject.SetActive(!unlocked);
+            if (card.Lock != null)
+                card.Lock.gameObject.SetActive(!unlocked);
+            if (card.Score != null)
+                card.Score.text = unlocked ? (completed ? "BEST  " + ATSPlayerProgress.GetBestScore(card.Level.LevelNumber).ToString("N0") : "NEW TRIAL") : string.Empty;
+
+            string nodeSkin;
+            if (boss) nodeSkin = "campaign_node_boss";
+            else if (!unlocked) nodeSkin = "campaign_node_locked";
+            else if (selected) nodeSkin = "campaign_node_selected";
+            else if (completed) nodeSkin = "campaign_node_completed";
+            else nodeSkin = "campaign_node";
+            ATSPremiumSkin.Apply(card.Background, nodeSkin, Vector4.zero, false);
+
+            if (card.Number != null)
+            {
+                card.Number.text = unlocked || boss ? card.Level.LevelNumber.ToString() : string.Empty;
+                card.Number.color = unlocked ? Color.white : new Color(0.78f, 0.68f, 0.46f, 0.92f);
+            }
 
             for (int i = 0; i < card.Stars.Count; i++)
             {
                 bool filled = i < stars;
+                card.Stars[i].gameObject.SetActive(unlocked);
                 ATSPremiumSkin.Apply(card.Stars[i], filled ? "star_filled" : "star_empty", Vector4.zero, false);
                 card.Stars[i].color = Color.white;
             }
         }
+
+        if (campaignProgress != null)
+            campaignProgress.text = totalStars + " / " + (levels.Length * 3);
+
+        UpdateCampaignDetail();
+    }
+
+    private CampaignMapData LoadCampaignMapData()
+    {
+        TextAsset json = Resources.Load<TextAsset>("UI/Campaign/CampaignMapData");
+        if (json != null && !string.IsNullOrWhiteSpace(json.text))
+        {
+            try
+            {
+                CampaignMapData parsed = JsonUtility.FromJson<CampaignMapData>(json.text);
+                if (parsed != null)
+                    return parsed;
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning("[Campaign Map] Could not parse CampaignMapData.json: " + ex.Message);
+            }
+        }
+        return new CampaignMapData();
+    }
+
+    private CampaignMapNodeData ResolveCampaignNode(int levelNumber)
+    {
+        if (campaignData != null && campaignData.nodes != null)
+        {
+            for (int i = 0; i < campaignData.nodes.Length; i++)
+            {
+                CampaignMapNodeData node = campaignData.nodes[i];
+                if (node != null && node.level == levelNumber)
+                    return node;
+            }
+        }
+
+        // Future levels remain data-compatible even before an artist positions them.
+        // They are clamped into the current chapter map until a new chapter asset/data is added.
+        int extra = Mathf.Max(0, levelNumber - 10);
+        return new CampaignMapNodeData
+        {
+            level = levelNumber,
+            x = 940f,
+            y = Mathf.Clamp(420f + Mathf.Sin(extra * 1.45f) * 70f, 120f, 520f),
+            title = "TRIAL " + levelNumber,
+            subtitle = "A new challenge awaits."
+        };
+    }
+
+    private void EnsureCampaignSelection()
+    {
+        if (levels == null || levels.Length == 0)
+        {
+            campaignSelectedLevel = null;
+            return;
+        }
+
+        if (campaignSelectedLevel != null && levels.Contains(campaignSelectedLevel))
+            return;
+
+        int preferred = Mathf.Clamp(ATSPlayerProgress.LastPlayedLevel, 1, levels[levels.Length - 1].LevelNumber);
+        campaignSelectedLevel = levels.FirstOrDefault(x => x.LevelNumber == preferred);
+        if (campaignSelectedLevel == null || !ATSPlayerProgress.IsLevelUnlocked(campaignSelectedLevel.LevelNumber))
+        {
+            int highest = ATSPlayerProgress.HighestUnlockedLevel;
+            campaignSelectedLevel = levels.Where(x => x.LevelNumber <= highest).OrderByDescending(x => x.LevelNumber).FirstOrDefault() ?? levels[0];
+        }
+    }
+
+    private void SelectCampaignLevel(LevelData level, bool centerOnNode)
+    {
+        if (level == null)
+            return;
+        campaignSelectedLevel = level;
+        RefreshLevelCards();
+        if (centerOnNode)
+            StartCoroutine(ScrollCampaignToSelection(true));
+    }
+
+    private void UpdateCampaignDetail()
+    {
+        if (campaignDetailLevel == null || campaignSelectedLevel == null)
+            return;
+
+        int levelNumber = campaignSelectedLevel.LevelNumber;
+        bool unlocked = ATSPlayerProgress.IsLevelUnlocked(levelNumber);
+        int stars = ATSPlayerProgress.GetBestStars(levelNumber);
+        CampaignMapNodeData data = ResolveCampaignNode(levelNumber);
+
+        campaignDetailLevel.text = "LEVEL " + levelNumber;
+        campaignDetailTitle.text = data != null && !string.IsNullOrWhiteSpace(data.title) ? data.title : "TRIAL " + levelNumber;
+        campaignDetailDescription.text = data != null && !string.IsNullOrWhiteSpace(data.subtitle) ? data.subtitle : DescribeLevel(campaignSelectedLevel);
+        campaignDetailShots.text = "ARROWS  " + campaignSelectedLevel.MaxShots;
+        campaignDetailScore.text = "BEST  " + ATSPlayerProgress.GetBestScore(levelNumber).ToString("N0");
+        campaignDetailLock.text = unlocked ? string.Empty : "COMPLETE THE PREVIOUS TRIAL TO UNLOCK";
+
+        for (int i = 0; i < campaignDetailStars.Count; i++)
+        {
+            ATSPremiumSkin.Apply(campaignDetailStars[i], i < stars ? "star_filled" : "star_empty", Vector4.zero, false);
+            campaignDetailStars[i].color = Color.white;
+        }
+
+        if (campaignPlayButton != null)
+        {
+            campaignPlayButton.interactable = unlocked;
+            TMP_Text label = campaignPlayButton.GetComponentInChildren<TMP_Text>();
+            if (label != null)
+                label.text = unlocked ? "PLAY" : "LOCKED";
+        }
+
+        if (campaignPreviewImage != null)
+        {
+            float tint = 0.88f + (levelNumber % 3) * 0.04f;
+            campaignPreviewImage.color = unlocked ? new Color(tint, tint * 0.97f, tint * 0.90f, 1f) : new Color(0.42f, 0.44f, 0.48f, 0.82f);
+        }
+    }
+
+    private static string DescribeLevel(LevelData level)
+    {
+        if (level == null || level.Objects == null)
+            return "Reach the target.";
+        int mirrors = level.Objects.Count(x => x != null && x.Type == LevelData.ObjectType.Mirror);
+        int walls = level.Objects.Count(x => x != null && x.Type == LevelData.ObjectType.Wall);
+        if (mirrors > 0 && walls > 0)
+            return "Use mirrors and obstacles to find the winning angle.";
+        if (mirrors > 0)
+            return "Use reflection to reach the target.";
+        if (walls > 0)
+            return "Find a clean path around the ruins.";
+        return "Hit the target with precision.";
+    }
+
+    private void StartSelectedCampaignLevel()
+    {
+        if (campaignSelectedLevel == null || !ATSPlayerProgress.IsLevelUnlocked(campaignSelectedLevel.LevelNumber))
+            return;
+        Click();
+        levelManager.StartLevelByNumber(campaignSelectedLevel.LevelNumber);
+    }
+
+    private void NudgeCampaignScroll(float amount)
+    {
+        if (campaignScroll == null)
+            return;
+        campaignScroll.StopMovement();
+        campaignScroll.horizontalNormalizedPosition = Mathf.Clamp01(campaignScroll.horizontalNormalizedPosition + amount);
+    }
+
+    private IEnumerator ScrollCampaignToSelection(bool animate)
+    {
+        yield return null;
+        if (campaignScroll == null || campaignViewport == null || campaignContent == null || campaignSelectedLevel == null)
+            yield break;
+        Canvas.ForceUpdateCanvases();
+        CampaignMapNodeData node = ResolveCampaignNode(campaignSelectedLevel.LevelNumber);
+        if (node == null)
+            yield break;
+
+        float scrollable = Mathf.Max(1f, campaignContent.rect.width - campaignViewport.rect.width);
+        float target = Mathf.Clamp01((node.x - campaignViewport.rect.width * 0.50f) / scrollable);
+        if (!animate)
+        {
+            campaignScroll.horizontalNormalizedPosition = target;
+            yield break;
+        }
+
+        float start = campaignScroll.horizontalNormalizedPosition;
+        float elapsed = 0f;
+        const float duration = 0.32f;
+        campaignScroll.StopMovement();
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            t = 1f - Mathf.Pow(1f - t, 3f);
+            campaignScroll.horizontalNormalizedPosition = Mathf.Lerp(start, target, t);
+            yield return null;
+        }
+        campaignScroll.horizontalNormalizedPosition = target;
     }
 
     private void SelectCharacter(Archer3DRuntimeProfile profile)
