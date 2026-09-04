@@ -6,9 +6,10 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Player-facing frontend built entirely from reusable runtime UI primitives.
-/// V2 focuses on presentation polish while keeping the existing roster, progression,
-/// level data and v18 gameplay systems authoritative.
+/// Player-facing frontend using a fixed premium 1920x1080 authored composition.
+/// Dynamic data (characters, levels, stars, locks, settings and progression) is still
+/// populated at runtime, but hero-screen geometry is deliberately fixed so Unity layout
+/// groups cannot compress or distort the approved visual composition.
 /// </summary>
 public sealed class ATSFrontendController : MonoBehaviour
 {
@@ -34,6 +35,8 @@ public sealed class ATSFrontendController : MonoBehaviour
     private TMP_Text characterPreviewName;
     private TMP_Text characterPreviewRole;
     private ATSCharacterPreview characterPreview;
+    private RawImage mainPreviewImage;
+    private RawImage characterPreviewImage;
     private readonly List<CharacterCard> characterCards = new List<CharacterCard>();
     private readonly List<LevelCard> levelCards = new List<LevelCard>();
 
@@ -56,6 +59,7 @@ public sealed class ATSFrontendController : MonoBehaviour
         public TMP_Text Score;
         public TMP_Text Lock;
         public Image LockOverlay;
+        public Image Thumbnail;
     }
 
     public static ATSFrontendController Ensure(LevelManager manager, GameConfig gameConfig, BowController bow, GameUIController ui)
@@ -124,9 +128,13 @@ public sealed class ATSFrontendController : MonoBehaviour
                 activeGroup = item.Value;
         }
 
-        bool characterScreen = id == ScreenId.Characters;
-        characterPreview?.SetVisible(characterScreen);
-        if (characterScreen)
+        bool previewScreen = id == ScreenId.Main || id == ScreenId.Characters;
+        if (characterPreview != null)
+        {
+            characterPreview.SetTarget(id == ScreenId.Main ? mainPreviewImage : characterPreviewImage);
+            characterPreview.SetVisible(previewScreen);
+        }
+        if (previewScreen)
             RefreshCharacterPreview();
 
         if (transitionRoutine != null)
@@ -183,11 +191,14 @@ public sealed class ATSFrontendController : MonoBehaviour
 
         CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = config.UIReferenceResolution;
-        scaler.matchWidthOrHeight = config.UIMatchWidthOrHeight;
+        scaler.referenceResolution = new Vector2(1920f, 1080f);
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+        scaler.matchWidthOrHeight = 0.5f;
+        scaler.referencePixelsPerUnit = 100f;
 
         RectTransform canvasRect = canvasObject.GetComponent<RectTransform>();
-        Image dim = CreateImage("Backdrop", canvasRect, new Color(0.012f, 0.008f, 0.032f, 0.38f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        // Keep the authored ruins visible. The premium frames provide contrast instead of a heavy full-screen tint.
+        Image dim = CreateImage("Backdrop", canvasRect, new Color(0.008f, 0.006f, 0.020f, 0.18f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
         rootGroup = dim.gameObject.AddComponent<CanvasGroup>();
         contentRoot = CreateRect("Content", dim.transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
         contentRoot.gameObject.AddComponent<SafeAreaFitter>();
@@ -201,40 +212,39 @@ public sealed class ATSFrontendController : MonoBehaviour
     private void BuildMainScreen()
     {
         CanvasGroup group = CreateScreen(ScreenId.Main, "MainMenu");
-        RectTransform panel = CreatePremiumPanel("MainCard", group.transform,
-            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-420f, 0f), new Vector2(650f, 760f));
 
-        Image accent = CreateImage("GoldAccent", panel, new Color(config.YellowColor.r, config.YellowColor.g, config.YellowColor.b, 0.92f),
-            new Vector2(0f, 0f), new Vector2(0f, 1f), new Vector2(5f, 0f), new Vector2(6f, -18f), new Vector2(0f, 0.5f));
-        accent.raycastTarget = false;
+        // Fixed 1920x1080 composition: authored menu frame on the left, living selected archer on the right.
+        RectTransform panel = CreatePremiumPanel("MainCard", group.transform,
+            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-480f, 0f), new Vector2(760f, 900f));
 
         Image crest = CreateImage("ArcheryCrest", panel, Color.white,
-            new Vector2(0.5f, 0.955f), new Vector2(0.5f, 0.955f), Vector2.zero, new Vector2(52f, 52f));
+            new Vector2(0.5f, 0.935f), new Vector2(0.5f, 0.935f), Vector2.zero, new Vector2(68f, 68f));
         ATSPremiumSkin.Apply(crest, "archery_crest", Vector4.zero, false);
         crest.raycastTarget = false;
 
-        TMP_Text eyebrow = CreateText("Eyebrow", panel, "ANCIENT TRIALS  •  PRECISION ARCHERY", 15f, config.YellowColor, FontStyles.Bold);
-        Place(eyebrow.rectTransform, new Vector2(0.5f, 0.91f), new Vector2(0.5f, 0.91f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(560f, 34f));
+        TMP_Text eyebrow = CreateText("Eyebrow", panel, "ANCIENT TRIALS  •  PRECISION ARCHERY", 17f, config.YellowColor, FontStyles.Bold);
+        Place(eyebrow.rectTransform, new Vector2(0.5f, 0.885f), new Vector2(0.5f, 0.885f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(620f, 34f));
 
-        TMP_Text title = CreateText("Title", panel, "ARCHERY\nTRICK SHOT", 61f, config.PrimaryTextColor, FontStyles.Bold);
-        Place(title.rectTransform, new Vector2(0.5f, 0.77f), new Vector2(0.5f, 0.77f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(560f, 160f));
+        TMP_Text title = CreateText("Title", panel, "ARCHERY\nTRICK SHOT", 76f, config.PrimaryTextColor, FontStyles.Bold);
+        title.characterSpacing = 2f;
+        Place(title.rectTransform, new Vector2(0.5f, 0.735f), new Vector2(0.5f, 0.735f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(650f, 190f));
 
-        TMP_Text subtitle = CreateText("Subtitle", panel, "MASTER THE ANGLE.  OWN THE SHOT.", 18f, config.SecondaryTextColor, FontStyles.Bold);
-        Place(subtitle.rectTransform, new Vector2(0.5f, 0.655f), new Vector2(0.5f, 0.655f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(560f, 34f));
+        TMP_Text subtitle = CreateText("Subtitle", panel, "MASTER THE ANGLE.  OWN THE SHOT.", 19f, config.SecondaryTextColor, FontStyles.Bold);
+        Place(subtitle.rectTransform, new Vector2(0.5f, 0.615f), new Vector2(0.5f, 0.615f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(610f, 34f));
 
-        Image divider = CreateImage("Divider", panel, new Color(config.YellowColor.r, config.YellowColor.g, config.YellowColor.b, 0.55f),
-            new Vector2(0.5f, 0.61f), new Vector2(0.5f, 0.61f), Vector2.zero, new Vector2(420f, 2f));
+        Image divider = CreateImage("Divider", panel, new Color(config.YellowColor.r, config.YellowColor.g, config.YellowColor.b, 0.70f),
+            new Vector2(0.5f, 0.575f), new Vector2(0.5f, 0.575f), Vector2.zero, new Vector2(470f, 2f));
         divider.raycastTarget = false;
 
-        TMP_Text currentLabel = CreateText("CurrentLabel", panel, "CURRENT ARCHER", 13f, config.SecondaryTextColor, FontStyles.Bold);
-        Place(currentLabel.rectTransform, new Vector2(0.5f, 0.57f), new Vector2(0.5f, 0.57f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(500f, 26f));
+        TMP_Text currentLabel = CreateText("CurrentLabel", panel, "CURRENT ARCHER", 14f, config.SecondaryTextColor, FontStyles.Bold);
+        Place(currentLabel.rectTransform, new Vector2(0.5f, 0.535f), new Vector2(0.5f, 0.535f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(520f, 26f));
 
-        selectedCharacterText = CreateText("SelectedCharacter", panel, "", 23f, config.YellowColor, FontStyles.Bold);
-        Place(selectedCharacterText.rectTransform, new Vector2(0.5f, 0.525f), new Vector2(0.5f, 0.525f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(520f, 38f));
+        selectedCharacterText = CreateText("SelectedCharacter", panel, "", 28f, config.YellowColor, FontStyles.Bold);
+        Place(selectedCharacterText.rectTransform, new Vector2(0.5f, 0.495f), new Vector2(0.5f, 0.495f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(560f, 38f));
 
-        Button play = CreateButton("Play", panel, "PLAY", new Vector2(0.5f, 0.405f), new Vector2(0.5f, 0.405f), new Vector2(0.5f, 0.5f), Vector2.zero,
-            new Vector2(470f, 84f), config.LimeColor, config.LimeColor, new Color(0.96f, 0.98f, 0.92f, 1f), 29f, true, "button_primary");
-        Image playIcon = CreateImage("PlayIcon", play.transform, Color.white, new Vector2(0.12f, 0.5f), new Vector2(0.12f, 0.5f), Vector2.zero, new Vector2(40f, 40f));
+        Button play = CreateButton("Play", panel, "PLAY", new Vector2(0.5f, 0.365f), new Vector2(0.5f, 0.365f), new Vector2(0.5f, 0.5f), Vector2.zero,
+            new Vector2(560f, 92f), config.LimeColor, config.LimeColor, new Color(0.96f, 0.98f, 0.92f, 1f), 34f, true, "button_primary");
+        Image playIcon = CreateImage("PlayIcon", play.transform, Color.white, new Vector2(0.12f, 0.5f), new Vector2(0.12f, 0.5f), Vector2.zero, new Vector2(46f, 46f));
         ATSPremiumSkin.Apply(playIcon, "icon_play", Vector4.zero, false);
         playIcon.raycastTarget = false;
         play.onClick.AddListener(() =>
@@ -244,21 +254,44 @@ public sealed class ATSFrontendController : MonoBehaviour
             levelManager.StartLevelByNumber(target);
         });
 
-        CreateMenuButton(panel, "CHARACTERS", 0.275f, ShowCharacterSelect);
-        CreateMenuButton(panel, "LEVELS", 0.165f, ShowLevelSelect);
-        CreateMenuButton(panel, "SETTINGS", 0.055f, ShowSettings);
+        CreateMenuButton(panel, "CHARACTERS", 0.245f, ShowCharacterSelect);
+        CreateMenuButton(panel, "LEVELS", 0.145f, ShowLevelSelect);
+        CreateMenuButton(panel, "SETTINGS", 0.045f, ShowSettings);
+
+        // Main-menu hero presentation uses the actual selected runtime character, not baked artwork.
+        Image heroGlow = CreateImage("HeroGlow", group.transform, Color.white,
+            new Vector2(0.73f, 0.19f), new Vector2(0.73f, 0.19f), Vector2.zero, new Vector2(650f, 210f));
+        ATSPremiumSkin.Apply(heroGlow, "preview_pedestal", Vector4.zero, false);
+        heroGlow.color = new Color(1f, 1f, 1f, 0.86f);
+        heroGlow.raycastTarget = false;
+
+        mainPreviewImage = CreateRawImage("MainCharacterPreview", group.transform,
+            new Vector2(0.52f, 0.08f), new Vector2(0.94f, 0.95f), Vector2.zero, Vector2.zero);
+        mainPreviewImage.color = Color.white;
+
+        RectTransform heroLabel = CreatePanel("HeroLabel", group.transform, new Color(0.008f, 0.02f, 0.05f, 0.84f),
+            new Color(config.YellowColor.r, config.YellowColor.g, config.YellowColor.b, 0.45f),
+            new Vector2(0.68f, 0.08f), new Vector2(0.91f, 0.19f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+        ATSPremiumSkin.Apply(heroLabel.GetComponent<Image>(), "panel_inner", new Vector4(24f, 24f, 24f, 24f));
+        TMP_Text heroHint = CreateText("HeroHint", heroLabel, "YOUR SELECTED ARCHER", 15f, config.YellowColor, FontStyles.Bold);
+        Place(heroHint.rectTransform, new Vector2(0.5f, 0.67f), new Vector2(0.5f, 0.67f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(330f, 28f));
+        TMP_Text heroSub = CreateText("HeroSub", heroLabel, "READY FOR THE NEXT TRIAL", 13f, config.SecondaryTextColor, FontStyles.Bold);
+        Place(heroSub.rectTransform, new Vector2(0.5f, 0.34f), new Vector2(0.5f, 0.34f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(330f, 26f));
     }
 
     private void BuildCharacterScreen()
     {
         CanvasGroup group = CreateScreen(ScreenId.Characters, "Characters");
         RectTransform panel = CreatePremiumPanel("CharacterCard", group.transform,
-            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1450f, 830f));
-        AddHeader(panel, "SELECT ARCHER", "CHOOSE YOUR STYLE. YOUR SELECTION IS SAVED.");
+            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1740f, 940f));
+        AddHeader(panel, "SELECT ARCHER", "CHOOSE YOUR STYLE.  YOUR SELECTION IS SAVED.");
 
-        RectTransform leftPanel = CreatePanel("CharacterListPanel", panel, InnerPanel, new Color(config.PanelBorderColor.r, config.PanelBorderColor.g, config.PanelBorderColor.b, 0.65f),
-            new Vector2(0.055f, 0.16f), new Vector2(0.365f, 0.73f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
-        ATSPremiumSkin.Apply(leftPanel.GetComponent<Image>(), "panel_inner", new Vector4(26f, 26f, 26f, 26f));
+        // Left rail: large, readable selectable hero cards.
+        RectTransform leftPanel = CreatePanel("CharacterListPanel", panel, InnerPanel,
+            new Color(config.PanelBorderColor.r, config.PanelBorderColor.g, config.PanelBorderColor.b, 0.65f),
+            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-535f, -55f), new Vector2(540f, 600f));
+        ATSPremiumSkin.Apply(leftPanel.GetComponent<Image>(), "panel_inner", new Vector4(30f, 30f, 30f, 30f));
+
         RectTransform listViewport = CreateRect("ListViewport", leftPanel, new Vector2(0.04f, 0.04f), new Vector2(0.96f, 0.96f), Vector2.zero, Vector2.zero);
         listViewport.gameObject.AddComponent<RectMask2D>();
         ScrollRect listScroll = leftPanel.gameObject.AddComponent<ScrollRect>();
@@ -266,16 +299,16 @@ public sealed class ATSFrontendController : MonoBehaviour
         listScroll.horizontal = false;
         listScroll.vertical = true;
         listScroll.movementType = ScrollRect.MovementType.Clamped;
-        listScroll.scrollSensitivity = 28f;
+        listScroll.scrollSensitivity = 34f;
 
-        RectTransform list = CreateRect("CharacterList", listViewport, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, 0f), new Vector2(0f, 0f));
+        RectTransform list = CreateRect("CharacterList", listViewport, new Vector2(0f, 1f), new Vector2(1f, 1f), Vector2.zero, Vector2.zero);
         list.pivot = new Vector2(0.5f, 1f);
         VerticalLayoutGroup layout = list.gameObject.AddComponent<VerticalLayoutGroup>();
-        layout.spacing = 14f;
+        layout.spacing = 20f;
         layout.childAlignment = TextAnchor.UpperCenter;
         layout.childForceExpandWidth = true;
         layout.childForceExpandHeight = false;
-        layout.padding = new RectOffset(8, 8, 8, 8);
+        layout.padding = new RectOffset(8, 8, 10, 10);
         ContentSizeFitter fitter = list.gameObject.AddComponent<ContentSizeFitter>();
         fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
         listScroll.content = list;
@@ -290,86 +323,83 @@ public sealed class ATSFrontendController : MonoBehaviour
 
                 RectTransform card = CreatePanel("Character_" + profile.CharacterId, list, CardColor,
                     new Color(config.PanelBorderColor.r, config.PanelBorderColor.g, config.PanelBorderColor.b, 0.55f),
-                    Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(0f, 142f));
-                ATSPremiumSkin.Apply(card.GetComponent<Image>(), "character_card", new Vector4(28f, 28f, 28f, 28f));
+                    Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(0f, 178f));
+                ATSPremiumSkin.Apply(card.GetComponent<Image>(), "character_card", new Vector4(30f, 30f, 30f, 30f));
                 LayoutElement cardLayout = card.gameObject.AddComponent<LayoutElement>();
-                cardLayout.preferredHeight = 142f;
-                cardLayout.minHeight = 142f;
+                cardLayout.preferredHeight = 178f;
+                cardLayout.minHeight = 178f;
 
                 Image emblemPlate = CreateImage("EmblemPlate", card, new Color(0.02f, 0.07f, 0.14f, 0.88f),
-                    new Vector2(0.06f, 0.20f), new Vector2(0.28f, 0.80f), Vector2.zero, Vector2.zero);
+                    new Vector2(0.055f, 0.16f), new Vector2(0.285f, 0.84f), Vector2.zero, Vector2.zero);
                 ATSPremiumSkin.Apply(emblemPlate, "panel_inner", new Vector4(22f, 22f, 22f, 22f));
                 string emblem = profile.CharacterId.Equals("khaem", System.StringComparison.OrdinalIgnoreCase) ? "icon_helmet" :
                     (profile.CharacterId.Equals("nerissa", System.StringComparison.OrdinalIgnoreCase) ? "icon_ranger" : "icon_characters");
                 Image emblemImage = CreateImage("Emblem", emblemPlate.transform, Color.white,
-                    new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(64f, 64f));
+                    new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(78f, 78f));
                 ATSPremiumSkin.Apply(emblemImage, emblem, Vector4.zero, false);
                 emblemImage.raycastTarget = false;
 
-                TMP_Text name = CreateText("Name", card, profile.DisplayName.ToUpperInvariant(), 25f, config.PrimaryTextColor, FontStyles.Bold);
+                TMP_Text name = CreateText("Name", card, profile.DisplayName.ToUpperInvariant(), 29f, config.PrimaryTextColor, FontStyles.Bold);
                 name.alignment = TextAlignmentOptions.Left;
-                Place(name.rectTransform, new Vector2(0.34f, 0.62f), new Vector2(0.93f, 0.82f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
+                Place(name.rectTransform, new Vector2(0.33f, 0.62f), new Vector2(0.94f, 0.84f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
 
-                TMP_Text role = CreateText("Role", card, GetRole(profile), 14f, config.SecondaryTextColor, FontStyles.Bold);
+                TMP_Text role = CreateText("Role", card, GetRole(profile), 16f, config.SecondaryTextColor, FontStyles.Bold);
                 role.alignment = TextAlignmentOptions.Left;
-                Place(role.rectTransform, new Vector2(0.34f, 0.40f), new Vector2(0.93f, 0.58f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
+                Place(role.rectTransform, new Vector2(0.33f, 0.40f), new Vector2(0.94f, 0.60f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
 
-                TMP_Text badge = CreateText("Badge", card, "SELECT", 14f, config.LimeColor, FontStyles.Bold);
+                TMP_Text badge = CreateText("Badge", card, "SELECT", 16f, config.LimeColor, FontStyles.Bold);
                 badge.alignment = TextAlignmentOptions.Left;
-                Place(badge.rectTransform, new Vector2(0.34f, 0.14f), new Vector2(0.93f, 0.34f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
+                Place(badge.rectTransform, new Vector2(0.33f, 0.13f), new Vector2(0.94f, 0.34f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
 
                 Button button = card.gameObject.AddComponent<Button>();
                 button.transition = Selectable.Transition.None;
                 card.gameObject.AddComponent<ATSButtonMotion>();
                 Archer3DRuntimeProfile captured = profile;
                 button.onClick.AddListener(() => SelectCharacter(captured));
-                characterCards.Add(new CharacterCard
-                {
-                    Profile = profile,
-                    Button = button,
-                    Background = card.GetComponent<Image>(),
-                    Border = card.GetComponent<Outline>(),
-                    Badge = badge
-                });
+                characterCards.Add(new CharacterCard { Profile = profile, Button = button, Background = card.GetComponent<Image>(), Border = card.GetComponent<Outline>(), Badge = badge });
             }
         }
 
+        // Right hero stage: intentionally fixed, no layout groups, so it matches the authored composition at all 16:9 sizes.
         RectTransform previewFrame = CreatePanel("PreviewFrame", panel, InnerPanel,
             new Color(config.YellowColor.r, config.YellowColor.g, config.YellowColor.b, 0.55f),
-            new Vector2(0.395f, 0.16f), new Vector2(0.945f, 0.73f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
-        ATSPremiumSkin.Apply(previewFrame.GetComponent<Image>(), "panel_inner", new Vector4(26f, 26f, 26f, 26f));
+            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(315f, -55f), new Vector2(1020f, 600f));
+        ATSPremiumSkin.Apply(previewFrame.GetComponent<Image>(), "panel_inner", new Vector4(30f, 30f, 30f, 30f));
 
         Image pedestal = CreateImage("PreviewPedestal", previewFrame, Color.white,
-            new Vector2(0.10f, 0.13f), new Vector2(0.68f, 0.37f), Vector2.zero, Vector2.zero);
+            new Vector2(0.34f, 0.19f), new Vector2(0.34f, 0.19f), Vector2.zero, new Vector2(510f, 155f));
         ATSPremiumSkin.Apply(pedestal, "preview_pedestal", Vector4.zero, false);
         pedestal.raycastTarget = false;
 
-        RawImage previewImage = CreateRawImage("CharacterPreview", previewFrame,
-            new Vector2(0.08f, 0.16f), new Vector2(0.70f, 0.94f), Vector2.zero, Vector2.zero);
-        previewImage.color = Color.white;
+        characterPreviewImage = CreateRawImage("CharacterPreview", previewFrame,
+            new Vector2(0.04f, 0.07f), new Vector2(0.66f, 0.96f), Vector2.zero, Vector2.zero);
+        characterPreviewImage.color = Color.white;
 
-        RectTransform info = CreateRect("PreviewInfo", previewFrame, new Vector2(0.70f, 0.18f), new Vector2(0.96f, 0.91f), Vector2.zero, Vector2.zero);
-        TMP_Text label = CreateText("PreviewLabel", info, "ACTIVE ARCHER", 13f, config.YellowColor, FontStyles.Bold);
+        RectTransform info = CreateRect("PreviewInfo", previewFrame, new Vector2(0.66f, 0.11f), new Vector2(0.96f, 0.91f), Vector2.zero, Vector2.zero);
+        TMP_Text label = CreateText("PreviewLabel", info, "ACTIVE ARCHER", 14f, config.YellowColor, FontStyles.Bold);
         label.alignment = TextAlignmentOptions.Left;
-        Place(label.rectTransform, new Vector2(0f, 0.82f), new Vector2(1f, 0.95f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
+        Place(label.rectTransform, new Vector2(0f, 0.82f), new Vector2(1f, 0.94f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
 
-        characterPreviewName = CreateText("PreviewName", info, "", 34f, config.PrimaryTextColor, FontStyles.Bold);
+        characterPreviewName = CreateText("PreviewName", info, "", 44f, config.PrimaryTextColor, FontStyles.Bold);
         characterPreviewName.alignment = TextAlignmentOptions.Left;
         characterPreviewName.enableWordWrapping = true;
         Place(characterPreviewName.rectTransform, new Vector2(0f, 0.61f), new Vector2(1f, 0.82f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
 
-        characterPreviewRole = CreateText("PreviewRole", info, "", 17f, config.SecondaryTextColor, FontStyles.Bold);
+        characterPreviewRole = CreateText("PreviewRole", info, "", 21f, config.SecondaryTextColor, FontStyles.Bold);
         characterPreviewRole.alignment = TextAlignmentOptions.Left;
-        characterPreviewRole.enableWordWrapping = true;
-        Place(characterPreviewRole.rectTransform, new Vector2(0f, 0.46f), new Vector2(1f, 0.61f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
+        Place(characterPreviewRole.rectTransform, new Vector2(0f, 0.48f), new Vector2(1f, 0.61f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
 
-        TMP_Text note = CreateText("PreviewNote", info, "Your archer is remembered\nbetween sessions.", 14f, config.SecondaryTextColor, FontStyles.Normal);
+        Image infoLine = CreateImage("InfoLine", info, new Color(config.YellowColor.r, config.YellowColor.g, config.YellowColor.b, 0.62f),
+            new Vector2(0f, 0.43f), new Vector2(0.86f, 0.43f), Vector2.zero, new Vector2(0f, 2f), new Vector2(0f, 0.5f));
+        infoLine.raycastTarget = false;
+
+        TMP_Text note = CreateText("PreviewNote", info, "Your archer is remembered\nbetween sessions.", 17f, config.SecondaryTextColor, FontStyles.Normal);
         note.alignment = TextAlignmentOptions.Left;
         note.enableWordWrapping = true;
-        Place(note.rectTransform, new Vector2(0f, 0.16f), new Vector2(1f, 0.40f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
+        Place(note.rectTransform, new Vector2(0f, 0.18f), new Vector2(1f, 0.38f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
 
         characterPreview = gameObject.AddComponent<ATSCharacterPreview>();
-        characterPreview.Initialize(previewImage);
+        characterPreview.Initialize(characterPreviewImage);
         AddBackButton(panel, ShowMainMenu);
     }
 
@@ -377,12 +407,13 @@ public sealed class ATSFrontendController : MonoBehaviour
     {
         CanvasGroup group = CreateScreen(ScreenId.Levels, "Levels");
         RectTransform panel = CreatePremiumPanel("LevelsCard", group.transform,
-            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1500f, 860f));
+            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1760f, 950f));
         AddHeader(panel, "CHOOSE YOUR CHALLENGE", "NEW LEVELS UNLOCK AS YOU PROGRESS");
 
-        RectTransform viewport = CreateRect("LevelViewport", panel, new Vector2(0.055f, 0.17f), new Vector2(0.945f, 0.72f), Vector2.zero, Vector2.zero);
+        RectTransform viewport = CreateRect("LevelViewport", panel, new Vector2(0f, 0f), new Vector2(0f, 0f), Vector2.zero, Vector2.zero);
+        Place(viewport, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -55f), new Vector2(1600f, 610f));
         Image viewportFill = viewport.gameObject.AddComponent<Image>();
-        viewportFill.color = new Color(0f, 0f, 0f, 0.06f);
+        viewportFill.color = new Color(0f, 0f, 0f, 0.02f);
         viewportFill.raycastTarget = true;
         viewport.gameObject.AddComponent<RectMask2D>();
 
@@ -392,18 +423,18 @@ public sealed class ATSFrontendController : MonoBehaviour
         scroll.movementType = ScrollRect.MovementType.Clamped;
         scroll.inertia = true;
         scroll.decelerationRate = 0.14f;
-        scroll.scrollSensitivity = 42f;
+        scroll.scrollSensitivity = 46f;
         scroll.viewport = viewport;
 
         RectTransform content = CreateRect("LevelGrid", viewport, new Vector2(0f, 1f), new Vector2(1f, 1f), Vector2.zero, Vector2.zero);
         content.pivot = new Vector2(0.5f, 1f);
         content.anchoredPosition = Vector2.zero;
         GridLayoutGroup grid = content.gameObject.AddComponent<GridLayoutGroup>();
-        grid.cellSize = new Vector2(290f, 168f);
-        grid.spacing = new Vector2(22f, 20f);
-        grid.padding = new RectOffset(20, 20, 18, 18);
+        grid.cellSize = new Vector2(286f, 268f);
+        grid.spacing = new Vector2(22f, 22f);
+        grid.padding = new RectOffset(38, 38, 20, 20);
         grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-        grid.constraintCount = 4;
+        grid.constraintCount = 5;
         grid.childAlignment = TextAnchor.UpperCenter;
         scroll.content = content;
 
@@ -415,33 +446,42 @@ public sealed class ATSFrontendController : MonoBehaviour
                 Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
             ATSPremiumSkin.Apply(card.GetComponent<Image>(), "level_card", new Vector4(26f, 26f, 26f, 26f));
 
-            TMP_Text number = CreateText("Number", card, "LEVEL " + level.LevelNumber, 25f, config.PrimaryTextColor, FontStyles.Bold);
-            Place(number.rectTransform, new Vector2(0.5f, 0.78f), new Vector2(0.5f, 0.78f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(250f, 38f));
+            Image thumbnail = CreateImage("Thumbnail", card, Color.white,
+                new Vector2(0.08f, 0.47f), new Vector2(0.92f, 0.84f), Vector2.zero, Vector2.zero);
+            if (ATSPremiumSkin.Apply(thumbnail, "level_thumb_ruins", Vector4.zero, false))
+            {
+                thumbnail.preserveAspect = false;
+                float tint = 0.78f + (level.LevelNumber % 4) * 0.05f;
+                thumbnail.color = new Color(tint, tint * 0.94f, tint * 0.82f, 0.92f);
+            }
+            thumbnail.raycastTarget = false;
 
-            RectTransform starsRoot = CreateRect("Stars", card, new Vector2(0.5f, 0.49f), new Vector2(0.5f, 0.49f), Vector2.zero, Vector2.zero);
+            TMP_Text number = CreateText("Number", card, "LEVEL " + level.LevelNumber, 25f, config.PrimaryTextColor, FontStyles.Bold);
+            Place(number.rectTransform, new Vector2(0.5f, 0.91f), new Vector2(0.5f, 0.91f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(250f, 40f));
+
+            RectTransform starsRoot = CreateRect("Stars", card, new Vector2(0.5f, 0.33f), new Vector2(0.5f, 0.33f), Vector2.zero, Vector2.zero);
             starsRoot.pivot = new Vector2(0.5f, 0.5f);
-            starsRoot.anchoredPosition = Vector2.zero;
-            starsRoot.sizeDelta = new Vector2(114f, 34f);
+            starsRoot.sizeDelta = new Vector2(150f, 42f);
             List<Image> stars = new List<Image>(3);
             for (int i = 0; i < 3; i++)
             {
                 Image star = CreateImage("Star" + (i + 1), starsRoot, Color.white,
-                    new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(19f + i * 38f, 0f), new Vector2(25f, 25f));
+                    new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(25f + i * 50f, 0f), new Vector2(34f, 34f));
                 ATSPremiumSkin.Apply(star, "star_empty", Vector4.zero, false);
                 star.raycastTarget = false;
                 stars.Add(star);
             }
 
-            TMP_Text score = CreateText("Score", card, "BEST  0", 15f, config.SecondaryTextColor, FontStyles.Bold);
-            Place(score.rectTransform, new Vector2(0.5f, 0.24f), new Vector2(0.5f, 0.24f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(250f, 28f));
+            TMP_Text score = CreateText("Score", card, "BEST SCORE  0", 15f, config.SecondaryTextColor, FontStyles.Bold);
+            Place(score.rectTransform, new Vector2(0.5f, 0.15f), new Vector2(0.5f, 0.15f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(250f, 30f));
 
-            Image lockOverlay = CreateImage("LockOverlay", card, new Color(0.012f, 0.010f, 0.022f, 0.58f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            Image lockOverlay = CreateImage("LockOverlay", card, new Color(0.006f, 0.007f, 0.014f, 0.66f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             Image lockIcon = CreateImage("LockIcon", lockOverlay.transform, Color.white,
-                new Vector2(0.5f, 0.52f), new Vector2(0.5f, 0.52f), Vector2.zero, new Vector2(46f, 46f));
+                new Vector2(0.5f, 0.54f), new Vector2(0.5f, 0.54f), Vector2.zero, new Vector2(62f, 62f));
             ATSPremiumSkin.Apply(lockIcon, "lock", Vector4.zero, false);
             lockIcon.raycastTarget = false;
-            TMP_Text lockText = CreateText("Lock", lockOverlay.transform, "LOCKED", 15f, config.PinkColor, FontStyles.Bold);
-            Place(lockText.rectTransform, new Vector2(0.5f, 0.16f), new Vector2(0.5f, 0.16f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(220f, 28f));
+            TMP_Text lockText = CreateText("Lock", lockOverlay.transform, "LOCKED", 17f, config.YellowColor, FontStyles.Bold);
+            Place(lockText.rectTransform, new Vector2(0.5f, 0.28f), new Vector2(0.5f, 0.28f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(220f, 30f));
 
             Button button = card.gameObject.AddComponent<Button>();
             button.transition = Selectable.Transition.None;
@@ -456,26 +496,17 @@ public sealed class ATSFrontendController : MonoBehaviour
                 }
             });
 
-            LevelCard entry = new LevelCard
-            {
-                Level = level,
-                Button = button,
-                Background = card.GetComponent<Image>(),
-                Border = card.GetComponent<Outline>(),
-                Score = score,
-                Lock = lockText,
-                LockOverlay = lockOverlay
-            };
+            LevelCard entry = new LevelCard { Level = level, Button = button, Background = card.GetComponent<Image>(), Border = card.GetComponent<Outline>(), Score = score, Lock = lockText, LockOverlay = lockOverlay, Thumbnail = thumbnail };
             entry.Stars.AddRange(stars);
             levelCards.Add(entry);
         }
 
-        int rows = Mathf.CeilToInt(levels.Length / 4f);
+        int rows = Mathf.CeilToInt(levels.Length / 5f);
         float contentHeight = grid.padding.top + grid.padding.bottom + rows * grid.cellSize.y + Mathf.Max(0, rows - 1) * grid.spacing.y;
-        content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, contentHeight);
+        content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, Mathf.Max(contentHeight, 610f));
 
-        TMP_Text hint = CreateText("ScrollHint", panel, levels.Length > 8 ? "SCROLL TO EXPLORE MORE LEVELS" : "", 13f, config.SecondaryTextColor, FontStyles.Bold);
-        Place(hint.rectTransform, new Vector2(0.5f, 0.135f), new Vector2(0.5f, 0.135f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(520f, 24f));
+        TMP_Text hint = CreateText("ScrollHint", panel, levels.Length > 10 ? "SCROLL TO EXPLORE MORE LEVELS" : "", 13f, config.SecondaryTextColor, FontStyles.Bold);
+        Place(hint.rectTransform, new Vector2(0.5f, 0.095f), new Vector2(0.5f, 0.095f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(520f, 24f));
 
         AddBackButton(panel, ShowMainMenu);
     }
@@ -484,52 +515,49 @@ public sealed class ATSFrontendController : MonoBehaviour
     {
         CanvasGroup group = CreateScreen(ScreenId.Settings, "Settings");
         RectTransform panel = CreatePremiumPanel("SettingsCard", group.transform,
-            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(920f, 740f));
+            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1500f, 880f));
         AddHeader(panel, "SETTINGS", "TUNE THE EXPERIENCE");
 
         CreateSettingSwitchRow(panel, "MUSIC", "Background soundtrack", 0.61f,
             () => ATSPlayerProgress.MusicEnabled,
             value => { ATSPlayerProgress.MusicEnabled = value; ApplyAudioSettings(); });
-
         CreateSettingSwitchRow(panel, "SOUND EFFECTS", "Impacts, UI and shot feedback", 0.48f,
             () => ATSPlayerProgress.SfxEnabled,
             value => { ATSPlayerProgress.SfxEnabled = value; ApplyAudioSettings(); });
-
         CreateSettingSwitchRow(panel, "HAPTICS", "Mobile vibration feedback", 0.35f,
             () => ATSPlayerProgress.HapticsEnabled,
             value => ATSPlayerProgress.HapticsEnabled = value);
 
-        Image performanceIcon = CreateImage("PerformanceIcon", panel, Color.white, new Vector2(0.135f, 0.22f), new Vector2(0.135f, 0.22f), Vector2.zero, new Vector2(44f, 44f));
+        Image performanceIcon = CreateImage("PerformanceIcon", panel, Color.white, new Vector2(0.13f, 0.22f), new Vector2(0.13f, 0.22f), Vector2.zero, new Vector2(62f, 62f));
         ATSPremiumSkin.Apply(performanceIcon, "icon_performance", Vector4.zero, false);
         performanceIcon.raycastTarget = false;
-        TMP_Text performanceLabel = CreateText("PerformanceLabel", panel, "PERFORMANCE", 20f, config.PrimaryTextColor, FontStyles.Bold);
+        TMP_Text performanceLabel = CreateText("PerformanceLabel", panel, "PERFORMANCE", 29f, config.PrimaryTextColor, FontStyles.Bold);
         performanceLabel.alignment = TextAlignmentOptions.Left;
-        Place(performanceLabel.rectTransform, new Vector2(0.18f, 0.215f), new Vector2(0.48f, 0.255f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
-        TMP_Text performanceSub = CreateText("PerformanceSub", panel, "Choose smoothness or longer battery life", 13f, config.SecondaryTextColor, FontStyles.Normal);
+        Place(performanceLabel.rectTransform, new Vector2(0.18f, 0.205f), new Vector2(0.48f, 0.255f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
+        TMP_Text performanceSub = CreateText("PerformanceSub", panel, "Smooth play or longer battery life", 16f, config.SecondaryTextColor, FontStyles.Normal);
         performanceSub.alignment = TextAlignmentOptions.Left;
-        Place(performanceSub.rectTransform, new Vector2(0.18f, 0.175f), new Vector2(0.55f, 0.215f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
+        Place(performanceSub.rectTransform, new Vector2(0.18f, 0.165f), new Vector2(0.52f, 0.205f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
 
         RectTransform segmented = CreatePanel("PerformanceSelector", panel, new Color(0.018f, 0.012f, 0.050f, 0.95f),
             new Color(config.PanelBorderColor.r, config.PanelBorderColor.g, config.PanelBorderColor.b, 0.6f),
-            new Vector2(0.58f, 0.185f), new Vector2(0.84f, 0.255f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            new Vector2(0.59f, 0.17f), new Vector2(0.88f, 0.255f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
         ATSPremiumSkin.Apply(segmented.GetComponent<Image>(), "panel_inner", new Vector4(24f, 24f, 24f, 24f));
 
-        Button smooth = CreateButton("Smooth", segmented, "SMOOTH 60", new Vector2(0f, 0f), new Vector2(0.5f, 1f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero,
-            Color.clear, Color.clear, config.PrimaryTextColor, 13f, false);
+        Button smooth = CreateButton("Smooth", segmented, "SMOOTH 60 FPS", new Vector2(0f, 0f), new Vector2(0.5f, 1f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero,
+            Color.clear, Color.clear, config.PrimaryTextColor, 16f, false);
         Button battery = CreateButton("Battery", segmented, "BATTERY 30", new Vector2(0.5f, 0f), new Vector2(1f, 1f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero,
-            Color.clear, Color.clear, config.PrimaryTextColor, 13f, false);
+            Color.clear, Color.clear, config.PrimaryTextColor, 16f, false);
         Image smoothFill = CreateImage("SmoothFill", smooth.transform, Color.clear, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
         smoothFill.transform.SetAsFirstSibling(); smoothFill.raycastTarget = false;
         Image batteryFill = CreateImage("BatteryFill", battery.transform, Color.clear, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
         batteryFill.transform.SetAsFirstSibling(); batteryFill.raycastTarget = false;
-
         TMP_Text smoothText = smooth.GetComponentInChildren<TMP_Text>();
         TMP_Text batteryText = battery.GetComponentInChildren<TMP_Text>();
         System.Action refreshPerformance = () =>
         {
             bool isSmooth = ATSPlayerProgress.PerformanceMode == 0;
-            smoothFill.color = isSmooth ? new Color(config.LimeColor.r, config.LimeColor.g, config.LimeColor.b, 0.16f) : Color.clear;
-            batteryFill.color = !isSmooth ? new Color(config.YellowColor.r, config.YellowColor.g, config.YellowColor.b, 0.13f) : Color.clear;
+            smoothFill.color = isSmooth ? new Color(config.LimeColor.r, config.LimeColor.g, config.LimeColor.b, 0.18f) : Color.clear;
+            batteryFill.color = !isSmooth ? new Color(config.YellowColor.r, config.YellowColor.g, config.YellowColor.b, 0.16f) : Color.clear;
             smoothText.color = isSmooth ? config.LimeColor : config.SecondaryTextColor;
             batteryText.color = !isSmooth ? config.YellowColor : config.SecondaryTextColor;
         };
@@ -542,27 +570,32 @@ public sealed class ATSFrontendController : MonoBehaviour
 
     private void CreateSettingSwitchRow(RectTransform panel, string title, string subtitle, float y, System.Func<bool> getter, System.Action<bool> setter)
     {
+        RectTransform row = CreatePanel(title + "Row", panel, new Color(0.01f, 0.025f, 0.065f, 0.90f),
+            new Color(config.YellowColor.r, config.YellowColor.g, config.YellowColor.b, 0.35f),
+            new Vector2(0.10f, y - 0.055f), new Vector2(0.90f, y + 0.065f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+        ATSPremiumSkin.Apply(row.GetComponent<Image>(), "panel_inner", new Vector4(26f, 26f, 26f, 26f));
+
         string iconName = title == "MUSIC" ? "icon_music" : (title == "SOUND EFFECTS" ? "icon_sfx" : "icon_haptics");
-        Image rowIcon = CreateImage(title + "Icon", panel, Color.white, new Vector2(0.135f, y + 0.012f), new Vector2(0.135f, y + 0.012f), Vector2.zero, new Vector2(44f, 44f));
+        Image rowIcon = CreateImage(title + "Icon", row, Color.white, new Vector2(0.07f, 0.5f), new Vector2(0.07f, 0.5f), Vector2.zero, new Vector2(62f, 62f));
         ATSPremiumSkin.Apply(rowIcon, iconName, Vector4.zero, false);
         rowIcon.raycastTarget = false;
-        TMP_Text label = CreateText(title + "Label", panel, title, 21f, config.PrimaryTextColor, FontStyles.Bold);
+
+        TMP_Text label = CreateText(title + "Label", row, title, 29f, config.PrimaryTextColor, FontStyles.Bold);
         label.alignment = TextAlignmentOptions.Left;
-        Place(label.rectTransform, new Vector2(0.18f, y), new Vector2(0.50f, y + 0.05f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
-
-        TMP_Text sub = CreateText(title + "Sub", panel, subtitle, 13f, config.SecondaryTextColor, FontStyles.Normal);
+        Place(label.rectTransform, new Vector2(0.14f, 0.50f), new Vector2(0.55f, 0.84f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
+        TMP_Text sub = CreateText(title + "Sub", row, subtitle, 16f, config.SecondaryTextColor, FontStyles.Normal);
         sub.alignment = TextAlignmentOptions.Left;
-        Place(sub.rectTransform, new Vector2(0.18f, y - 0.045f), new Vector2(0.55f, y), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
+        Place(sub.rectTransform, new Vector2(0.14f, 0.16f), new Vector2(0.58f, 0.49f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
 
-        RectTransform switchRect = CreatePanel(title + "Switch", panel, new Color(0.018f, 0.012f, 0.05f, 0.96f),
+        RectTransform switchRect = CreatePanel(title + "Switch", row, new Color(0.018f, 0.012f, 0.05f, 0.96f),
             new Color(config.PanelBorderColor.r, config.PanelBorderColor.g, config.PanelBorderColor.b, 0.60f),
-            new Vector2(0.68f, y - 0.015f), new Vector2(0.82f, y + 0.055f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            new Vector2(0.76f, 0.24f), new Vector2(0.94f, 0.76f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
         Button button = switchRect.gameObject.AddComponent<Button>();
         button.transition = Selectable.Transition.None;
         switchRect.gameObject.AddComponent<ATSButtonMotion>();
         Image track = switchRect.GetComponent<Image>();
         ATSPremiumSkin.Apply(track, "toggle_track", new Vector4(26f, 26f, 26f, 26f));
-        Image knob = CreateImage("Knob", switchRect, Color.white, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(28f, 0f), new Vector2(42f, 42f));
+        Image knob = CreateImage("Knob", switchRect, Color.white, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(35f, 0f), new Vector2(48f, 48f));
         ATSPremiumSkin.Apply(knob, "toggle_knob", Vector4.zero, false);
         knob.raycastTarget = false;
 
@@ -572,13 +605,11 @@ public sealed class ATSFrontendController : MonoBehaviour
             track.color = on ? new Color(0.72f, 1f, 0.74f, 1f) : Color.white;
             knob.rectTransform.anchorMin = new Vector2(on ? 1f : 0f, 0.5f);
             knob.rectTransform.anchorMax = knob.rectTransform.anchorMin;
-            knob.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-            knob.rectTransform.anchoredPosition = new Vector2(on ? -28f : 28f, 0f);
+            knob.rectTransform.anchoredPosition = new Vector2(on ? -35f : 35f, 0f);
             Outline outline = switchRect.GetComponent<Outline>();
             if (outline != null)
                 outline.effectColor = on ? config.LimeColor : new Color(config.PanelBorderColor.r, config.PanelBorderColor.g, config.PanelBorderColor.b, 0.60f);
         };
-
         button.onClick.AddListener(() => { Click(); setter(!getter()); refresh(); });
         refresh();
     }
@@ -674,27 +705,25 @@ public sealed class ATSFrontendController : MonoBehaviour
     private void AddHeader(RectTransform panel, string title, string subtitle)
     {
         Image ribbon = CreateImage("HeaderRibbon", panel, Color.white,
-            new Vector2(0.5f, 0.86f), new Vector2(0.5f, 0.86f), Vector2.zero, new Vector2(820f, 118f));
+            new Vector2(0.5f, 0.865f), new Vector2(0.5f, 0.865f), Vector2.zero, new Vector2(1180f, 150f));
         ATSPremiumSkin.Apply(ribbon, "header_ribbon", Vector4.zero, false);
         ribbon.raycastTarget = false;
-        TMP_Text heading = CreateText("Heading", panel, title, 43f, config.PrimaryTextColor, FontStyles.Bold);
-        Place(heading.rectTransform, new Vector2(0.5f, 0.885f), new Vector2(0.5f, 0.885f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1180f, 70f));
-        TMP_Text sub = CreateText("Subheading", panel, subtitle, 16f, config.SecondaryTextColor, FontStyles.Bold);
-        Place(sub.rectTransform, new Vector2(0.5f, 0.81f), new Vector2(0.5f, 0.81f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1180f, 34f));
-        Image line = CreateImage("HeaderLine", panel, new Color(config.YellowColor.r, config.YellowColor.g, config.YellowColor.b, 0.42f),
-            new Vector2(0.5f, 0.765f), new Vector2(0.5f, 0.765f), Vector2.zero, new Vector2(300f, 2f));
+        TMP_Text heading = CreateText("Heading", panel, title, 50f, config.PrimaryTextColor, FontStyles.Bold);
+        heading.characterSpacing = 1.2f;
+        Place(heading.rectTransform, new Vector2(0.5f, 0.895f), new Vector2(0.5f, 0.895f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1320f, 74f));
+        TMP_Text sub = CreateText("Subheading", panel, subtitle, 17f, config.SecondaryTextColor, FontStyles.Bold);
+        Place(sub.rectTransform, new Vector2(0.5f, 0.815f), new Vector2(0.5f, 0.815f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1180f, 34f));
+        Image line = CreateImage("HeaderLine", panel, new Color(config.YellowColor.r, config.YellowColor.g, config.YellowColor.b, 0.52f),
+            new Vector2(0.5f, 0.77f), new Vector2(0.5f, 0.77f), Vector2.zero, new Vector2(420f, 2f));
         line.raycastTarget = false;
     }
 
     private void CreateMenuButton(RectTransform panel, string label, float y, UnityEngine.Events.UnityAction action)
     {
         Button button = CreateButton(label, panel, label, new Vector2(0.5f, y), new Vector2(0.5f, y), new Vector2(0.5f, 0.5f), Vector2.zero,
-            new Vector2(470f, 66f), new Color(0.035f, 0.018f, 0.085f, 0.96f), new Color(config.PanelBorderColor.r, config.PanelBorderColor.g, config.PanelBorderColor.b, 0.72f), config.PrimaryTextColor, 21f, true, "button_secondary");
-        Image accent = CreateImage("Accent", button.transform, new Color(config.YellowColor.r, config.YellowColor.g, config.YellowColor.b, 0.72f),
-            new Vector2(0f, 0f), new Vector2(0f, 1f), new Vector2(3f, 0f), new Vector2(4f, -10f), new Vector2(0f, 0.5f));
-        accent.raycastTarget = false;
+            new Vector2(560f, 72f), new Color(0.035f, 0.018f, 0.085f, 0.96f), new Color(config.PanelBorderColor.r, config.PanelBorderColor.g, config.PanelBorderColor.b, 0.72f), config.PrimaryTextColor, 24f, true, "button_secondary");
         string iconName = label == "CHARACTERS" ? "icon_characters" : (label == "LEVELS" ? "icon_levels" : "icon_settings");
-        Image icon = CreateImage(label + "Icon", button.transform, Color.white, new Vector2(0.12f, 0.5f), new Vector2(0.12f, 0.5f), Vector2.zero, new Vector2(34f, 34f));
+        Image icon = CreateImage(label + "Icon", button.transform, Color.white, new Vector2(0.10f, 0.5f), new Vector2(0.10f, 0.5f), Vector2.zero, new Vector2(38f, 38f));
         ATSPremiumSkin.Apply(icon, iconName, Vector4.zero, false);
         icon.raycastTarget = false;
         button.onClick.AddListener(() => { Click(); action(); });
@@ -702,9 +731,9 @@ public sealed class ATSFrontendController : MonoBehaviour
 
     private void AddBackButton(RectTransform panel, UnityEngine.Events.UnityAction action)
     {
-        Button button = CreateButton("Back", panel, "<  BACK", new Vector2(0.055f, 0.055f), new Vector2(0.055f, 0.055f), new Vector2(0f, 0.5f), Vector2.zero,
-            new Vector2(220f, 56f), new Color(0.030f, 0.016f, 0.075f, 0.98f), new Color(config.PanelBorderColor.r, config.PanelBorderColor.g, config.PanelBorderColor.b, 0.70f), config.PrimaryTextColor, 18f, true, "button_back");
-        Image backIcon = CreateImage("BackIcon", button.transform, Color.white, new Vector2(0.15f, 0.5f), new Vector2(0.15f, 0.5f), Vector2.zero, new Vector2(28f, 28f));
+        Button button = CreateButton("Back", panel, "BACK", new Vector2(0.065f, 0.055f), new Vector2(0.065f, 0.055f), new Vector2(0f, 0.5f), Vector2.zero,
+            new Vector2(260f, 64f), new Color(0.030f, 0.016f, 0.075f, 0.98f), new Color(config.PanelBorderColor.r, config.PanelBorderColor.g, config.PanelBorderColor.b, 0.70f), config.PrimaryTextColor, 20f, true, "button_back");
+        Image backIcon = CreateImage("BackIcon", button.transform, Color.white, new Vector2(0.13f, 0.5f), new Vector2(0.13f, 0.5f), Vector2.zero, new Vector2(32f, 32f));
         ATSPremiumSkin.Apply(backIcon, "icon_back", Vector4.zero, false);
         backIcon.raycastTarget = false;
         button.onClick.AddListener(() => { Click(); action(); });

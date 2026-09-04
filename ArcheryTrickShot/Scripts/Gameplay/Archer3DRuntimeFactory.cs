@@ -28,15 +28,24 @@ public static class Archer3DRuntimeFactory
                 existingController.Profile != null &&
                 existingController.Profile != profile)
             {
+                // Disable the old visual immediately before deferred Destroy().
+                // This prevents a one-frame Khaem+Nerissa overlap on slower Android frames.
+                GameObject oldVisual = existing.gameObject;
+                oldVisual.SetActive(false);
+                Renderer[] oldRenderers = oldVisual.GetComponentsInChildren<Renderer>(true);
+                for (int rendererIndex = 0; rendererIndex < oldRenderers.Length; rendererIndex++)
+                {
+                    if (oldRenderers[rendererIndex] != null)
+                        oldRenderers[rendererIndex].enabled = false;
+                }
+
                 if (Application.isPlaying)
                 {
-                    UnityEngine.Object.Destroy(
-                        existing.gameObject);
+                    UnityEngine.Object.Destroy(oldVisual);
                 }
                 else
                 {
-                    UnityEngine.Object.DestroyImmediate(
-                        existing.gameObject);
+                    UnityEngine.Object.DestroyImmediate(oldVisual);
                 }
 
                 existing = null;

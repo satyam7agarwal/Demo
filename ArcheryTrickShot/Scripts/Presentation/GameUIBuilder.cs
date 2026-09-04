@@ -58,9 +58,9 @@ public static class GameUIBuilder
             scaler = canvas.gameObject.AddComponent<CanvasScaler>();
 
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = config.UIReferenceResolution;
+        scaler.referenceResolution = new Vector2(1920f, 1080f);
         scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-        scaler.matchWidthOrHeight = config.UIMatchWidthOrHeight;
+        scaler.matchWidthOrHeight = 0.5f;
         scaler.referencePixelsPerUnit = 100f;
 
         if (canvas.GetComponent<GraphicRaycaster>() == null)
@@ -185,238 +185,133 @@ public static class GameUIBuilder
 
     private static void BuildResultOverlay(RectTransform root, GameConfig config, GameUIView view)
     {
-        Image overlayImage = CreateImage("ResultOverlay", root, new Color(0.025f, 0.015f, 0.08f, 0.68f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        Image overlayImage = CreateImage("ResultOverlay", root, new Color(0.01f, 0.008f, 0.025f, 0.66f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
         view.ResultOverlay = overlayImage.gameObject.AddComponent<CanvasGroup>();
 
         view.ResultCard = CreatePanel(
-            "ResultCard",
-            overlayImage.rectTransform,
-            config.PanelColor,
-            config.PanelBorderColor,
-            new Vector2(0.5f, 0.5f),
-            new Vector2(0.5f, 0.5f),
-            new Vector2(0.5f, 0.5f),
-            Vector2.zero,
-            new Vector2(680f, 560f)
-        );
-        AddShadow(view.ResultCard.gameObject, new Color(0f, 0f, 0f, 0.45f), new Vector2(0f, -14f));
+            "ResultCard", overlayImage.rectTransform, config.PanelColor, config.PanelBorderColor,
+            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero,
+            new Vector2(860f, 820f));
+        AddShadow(view.ResultCard.gameObject, new Color(0f, 0f, 0f, 0.52f), new Vector2(0f, -18f));
 
-        view.ResultTitle = CreateText("ResultTitle", view.ResultCard, "PERFECT SHOT!", 50f, config.YellowColor, FontStyles.Bold);
-        Place(view.ResultTitle.rectTransform, new Vector2(0.5f, 0.82f), new Vector2(0.5f, 0.82f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(590f, 80f));
+        Image crest = CreateImage("ResultCrest", view.ResultCard, Color.white,
+            new Vector2(0.5f, 0.93f), new Vector2(0.5f, 0.93f), Vector2.zero, new Vector2(62f, 62f));
+        ATSPremiumSkin.Apply(crest, "archery_crest", Vector4.zero, false);
+        crest.raycastTarget = false;
+
+        view.ResultTitle = CreateText("ResultTitle", view.ResultCard, "TARGET HIT!", 68f, config.YellowColor, FontStyles.Bold);
+        Place(view.ResultTitle.rectTransform, new Vector2(0.5f, 0.82f), new Vector2(0.5f, 0.82f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(760f, 100f));
+        view.ResultTitle.enableAutoSizing = true;
+        view.ResultTitle.fontSizeMin = 44f;
+        view.ResultTitle.fontSizeMax = 68f;
+
+        Image divider = CreateImage("ResultDivider", view.ResultCard, new Color(config.YellowColor.r, config.YellowColor.g, config.YellowColor.b, 0.58f),
+            new Vector2(0.5f, 0.735f), new Vector2(0.5f, 0.735f), Vector2.zero, new Vector2(420f, 2f));
+        divider.raycastTarget = false;
 
         BuildResultStars(view.ResultCard, config, view);
 
-        view.ResultInfo = CreateText("ResultInfo", view.ResultCard, "SHOTS SPENT  1 / 3", 25f, config.SecondaryTextColor, FontStyles.Bold);
-        Place(view.ResultInfo.rectTransform, new Vector2(0.5f, 0.57f), new Vector2(0.5f, 0.57f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(560f, 58f));
+        view.ResultInfo = CreateText("ResultInfo", view.ResultCard, "SCORE  300\n1 SHOT USED", 28f, config.SecondaryTextColor, FontStyles.Bold);
+        Place(view.ResultInfo.rectTransform, new Vector2(0.5f, 0.475f), new Vector2(0.5f, 0.475f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(700f, 92f));
+        view.ResultInfo.lineSpacing = 10f;
 
         view.ResultPrimaryButton = CreateButton(
-            "PrimaryButton",
-            view.ResultCard,
-            "NEXT LEVEL  >>",
-            new Vector2(0.5f, 0.31f),
-            new Vector2(0.5f, 0.31f),
-            new Vector2(0.5f, 0.5f),
-            Vector2.zero,
-            new Vector2(430f, 76f),
-            config.LimeColor,
-            config.LimeColor,
-            new Color(0.035f, 0.03f, 0.08f, 1f),
-            27f
-        );
+            "PrimaryButton", view.ResultCard, "NEXT LEVEL  >>",
+            new Vector2(0.5f, 0.315f), new Vector2(0.5f, 0.315f), new Vector2(0.5f, 0.5f), Vector2.zero,
+            new Vector2(570f, 86f), config.LimeColor, config.LimeColor, new Color(0.035f, 0.03f, 0.08f, 1f), 30f);
         view.ResultPrimaryButtonText = view.ResultPrimaryButton.GetComponentInChildren<TMP_Text>();
 
         view.ResultReplayButton = CreateButton(
-            "ReplayButton",
-            view.ResultCard,
-            "REPLAY",
-            new Vector2(0.5f, 0.17f),
-            new Vector2(0.5f, 0.17f),
-            new Vector2(0.5f, 0.5f),
-            Vector2.zero,
-            new Vector2(430f, 62f),
-            new Color(config.PanelColor.r * 0.8f, config.PanelColor.g * 0.8f, config.PanelColor.b * 0.8f, 1f),
-            config.PanelBorderColor,
-            config.PrimaryTextColor,
-            23f
-        );
+            "ReplayButton", view.ResultCard, "REPLAY",
+            new Vector2(0.5f, 0.205f), new Vector2(0.5f, 0.205f), new Vector2(0.5f, 0.5f), Vector2.zero,
+            new Vector2(570f, 70f), new Color(config.PanelColor.r * 0.8f, config.PanelColor.g * 0.8f, config.PanelColor.b * 0.8f, 1f),
+            config.PanelBorderColor, config.PrimaryTextColor, 24f);
 
         view.ResultLevelsButton = CreateButton(
             "LevelsButton", view.ResultCard, "LEVELS",
-            new Vector2(0.35f, 0.055f), new Vector2(0.35f, 0.055f), new Vector2(0.5f, 0.5f), Vector2.zero,
-            new Vector2(245f, 54f), new Color(0.08f, 0.05f, 0.20f, 1f), config.PanelBorderColor, config.SecondaryTextColor, 19f);
-
+            new Vector2(0.33f, 0.095f), new Vector2(0.33f, 0.095f), new Vector2(0.5f, 0.5f), Vector2.zero,
+            new Vector2(265f, 64f), new Color(0.08f, 0.05f, 0.20f, 1f), config.PanelBorderColor, config.SecondaryTextColor, 21f);
         view.ResultHomeButton = CreateButton(
             "HomeButton", view.ResultCard, "HOME",
-            new Vector2(0.65f, 0.055f), new Vector2(0.65f, 0.055f), new Vector2(0.5f, 0.5f), Vector2.zero,
-            new Vector2(245f, 54f), new Color(0.08f, 0.05f, 0.20f, 1f), config.PanelBorderColor, config.SecondaryTextColor, 19f);
+            new Vector2(0.67f, 0.095f), new Vector2(0.67f, 0.095f), new Vector2(0.5f, 0.5f), Vector2.zero,
+            new Vector2(265f, 64f), new Color(0.08f, 0.05f, 0.20f, 1f), config.PanelBorderColor, config.SecondaryTextColor, 21f);
     }
 
-    private static void BuildResultStars(
-        RectTransform card,
-        GameConfig config,
-        GameUIView view)
+    private static void BuildResultStars(RectTransform card, GameConfig config, GameUIView view)
     {
-        view.ResultStarsContainer =
-            CreateRect(
-                "ResultStars",
-                card,
-                new Vector2(0.5f, 0.63f),
-                new Vector2(0.5f, 0.63f),
-                Vector2.zero,
-                Vector2.zero);
+        view.ResultStarsContainer = CreateRect("ResultStars", card,
+            new Vector2(0.5f, 0.63f), new Vector2(0.5f, 0.63f), Vector2.zero, Vector2.zero);
+        RectTransform row = view.ResultStarsContainer;
+        row.pivot = new Vector2(0.5f, 0.5f);
+        row.anchoredPosition = Vector2.zero;
+        row.sizeDelta = new Vector2(410f, 105f);
 
-        RectTransform row =
-            view.ResultStarsContainer;
+        const float starSize = 92f;
+        const float starSpacing = 125f;
+        view.ResultStars = new StarGraphic[3];
+        Color idleColor = new Color(config.SecondaryTextColor.r, config.SecondaryTextColor.g, config.SecondaryTextColor.b, 0.28f);
 
-        row.pivot =
-            new Vector2(0.5f, 0.5f);
-
-        row.anchoredPosition =
-            Vector2.zero;
-
-        row.sizeDelta =
-            new Vector2(300f, 72f);
-
-        const float starSize = 58f;
-        const float starSpacing = 84f;
-
-        view.ResultStars =
-            new StarGraphic[3];
-
-        Color idleColor =
-            new Color(
-                config.SecondaryTextColor.r,
-                config.SecondaryTextColor.g,
-                config.SecondaryTextColor.b,
-                0.28f);
-
-        for (int index = 0;
-             index < view.ResultStars.Length;
-             index++)
+        for (int index = 0; index < view.ResultStars.Length; index++)
         {
-            GameObject starObject =
-                new GameObject(
-                    $"Star{index + 1}",
-                    typeof(RectTransform),
-                    typeof(StarGraphic));
-
-            starObject.transform.SetParent(
-                row,
-                false);
-
-            RectTransform starRect =
-                starObject.GetComponent<RectTransform>();
-
-            Place(
-                starRect,
-                new Vector2(0.5f, 0.5f),
-                new Vector2(0.5f, 0.5f),
-                new Vector2(0.5f, 0.5f),
-                new Vector2(
-                    (index - 1) *
-                    starSpacing,
-                    0f),
-                new Vector2(
-                    starSize,
-                    starSize));
-
-            StarGraphic star =
-                starObject.GetComponent<StarGraphic>();
-
-            star.color =
-                idleColor;
-
-            star.raycastTarget =
-                false;
-
-            Shadow shadow =
-                starObject.AddComponent<Shadow>();
-
-            shadow.effectColor =
-                new Color(
-                    0f,
-                    0f,
-                    0f,
-                    0.35f);
-
-            shadow.effectDistance =
-                new Vector2(
-                    2f,
-                    -2f);
-
-            shadow.useGraphicAlpha =
-                true;
-
-            view.ResultStars[index] =
-                star;
+            GameObject starObject = new GameObject($"Star{index + 1}", typeof(RectTransform), typeof(StarGraphic));
+            starObject.transform.SetParent(row, false);
+            RectTransform starRect = starObject.GetComponent<RectTransform>();
+            Place(starRect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                new Vector2((index - 1) * starSpacing, 0f), new Vector2(starSize, starSize));
+            StarGraphic star = starObject.GetComponent<StarGraphic>();
+            star.color = idleColor;
+            star.raycastTarget = false;
+            Shadow shadow = starObject.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0f, 0f, 0f, 0.38f);
+            shadow.effectDistance = new Vector2(3f, -3f);
+            shadow.useGraphicAlpha = true;
+            view.ResultStars[index] = star;
         }
 
-        view.ResultStarsMessage =
-            CreateText(
-                "ResultStarsMessage",
-                card,
-                string.Empty,
-                27f,
-                config.PrimaryTextColor,
-                FontStyles.Bold);
-
-        Place(
-            view.ResultStarsMessage.rectTransform,
-            new Vector2(0.5f, 0.63f),
-            new Vector2(0.5f, 0.63f),
-            new Vector2(0.5f, 0.5f),
-            Vector2.zero,
-            new Vector2(560f, 70f));
-
-        view.ResultStarsMessage
-            .gameObject
-            .SetActive(false);
+        view.ResultStarsMessage = CreateText("ResultStarsMessage", card, string.Empty, 31f, config.PrimaryTextColor, FontStyles.Bold);
+        Place(view.ResultStarsMessage.rectTransform, new Vector2(0.5f, 0.63f), new Vector2(0.5f, 0.63f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(620f, 80f));
+        view.ResultStarsMessage.gameObject.SetActive(false);
     }
 
     private static void BuildPauseOverlay(RectTransform root, GameConfig config, GameUIView view)
     {
-        Image overlayImage = CreateImage("PauseOverlay", root, new Color(0.02f, 0.012f, 0.07f, 0.76f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        Image overlayImage = CreateImage("PauseOverlay", root, new Color(0.01f, 0.008f, 0.025f, 0.72f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
         view.PauseOverlay = overlayImage.gameObject.AddComponent<CanvasGroup>();
 
         view.PauseCard = CreatePanel(
-            "PauseCard",
-            overlayImage.rectTransform,
-            config.PanelColor,
-            config.PanelBorderColor,
-            new Vector2(0.5f, 0.5f),
-            new Vector2(0.5f, 0.5f),
-            new Vector2(0.5f, 0.5f),
-            Vector2.zero,
-            new Vector2(600f, 510f)
-        );
-        AddShadow(view.PauseCard.gameObject, new Color(0f, 0f, 0f, 0.4f), new Vector2(0f, -12f));
+            "PauseCard", overlayImage.rectTransform, config.PanelColor, config.PanelBorderColor,
+            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero,
+            new Vector2(760f, 720f));
+        AddShadow(view.PauseCard.gameObject, new Color(0f, 0f, 0f, 0.48f), new Vector2(0f, -16f));
 
-        TMP_Text title = CreateText("PauseTitle", view.PauseCard, "PAUSED", 48f, config.YellowColor, FontStyles.Bold);
-        Place(title.rectTransform, new Vector2(0.5f, 0.77f), new Vector2(0.5f, 0.77f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(480f, 70f));
+        Image crest = CreateImage("PauseCrest", view.PauseCard, Color.white,
+            new Vector2(0.5f, 0.91f), new Vector2(0.5f, 0.91f), Vector2.zero, new Vector2(58f, 58f));
+        ATSPremiumSkin.Apply(crest, "archery_crest", Vector4.zero, false);
+        crest.raycastTarget = false;
+
+        TMP_Text title = CreateText("PauseTitle", view.PauseCard, "PAUSED", 70f, config.YellowColor, FontStyles.Bold);
+        Place(title.rectTransform, new Vector2(0.5f, 0.76f), new Vector2(0.5f, 0.76f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(620f, 90f));
+
+        Image line = CreateImage("PauseDivider", view.PauseCard, new Color(config.YellowColor.r, config.YellowColor.g, config.YellowColor.b, 0.55f),
+            new Vector2(0.5f, 0.665f), new Vector2(0.5f, 0.665f), Vector2.zero, new Vector2(360f, 2f));
+        line.raycastTarget = false;
 
         view.ResumeButton = CreateButton(
             "ResumeButton", view.PauseCard, "RESUME",
-            new Vector2(0.5f, 0.48f), new Vector2(0.5f, 0.48f), new Vector2(0.5f, 0.5f), Vector2.zero,
-            new Vector2(400f, 74f), config.LimeColor, config.LimeColor,
-            new Color(0.035f, 0.03f, 0.08f, 1f), 26f
-        );
-
+            new Vector2(0.5f, 0.51f), new Vector2(0.5f, 0.51f), new Vector2(0.5f, 0.5f), Vector2.zero,
+            new Vector2(520f, 86f), config.LimeColor, config.LimeColor, new Color(0.035f, 0.03f, 0.08f, 1f), 30f);
         view.RestartButton = CreateButton(
             "RestartButton", view.PauseCard, "RESTART LEVEL",
-            new Vector2(0.5f, 0.38f), new Vector2(0.5f, 0.38f), new Vector2(0.5f, 0.5f), Vector2.zero,
-            new Vector2(400f, 66f), new Color(0.10f, 0.06f, 0.24f, 1f), config.PanelBorderColor,
-            config.PrimaryTextColor, 23f
-        );
-
+            new Vector2(0.5f, 0.375f), new Vector2(0.5f, 0.375f), new Vector2(0.5f, 0.5f), Vector2.zero,
+            new Vector2(520f, 74f), new Color(0.10f, 0.06f, 0.24f, 1f), config.PanelBorderColor, config.PrimaryTextColor, 25f);
         view.PauseLevelsButton = CreateButton(
             "PauseLevelsButton", view.PauseCard, "LEVELS",
-            new Vector2(0.5f, 0.22f), new Vector2(0.5f, 0.22f), new Vector2(0.5f, 0.5f), Vector2.zero,
-            new Vector2(400f, 60f), new Color(0.08f, 0.05f, 0.20f, 1f), config.PanelBorderColor, config.SecondaryTextColor, 20f);
-
+            new Vector2(0.5f, 0.245f), new Vector2(0.5f, 0.245f), new Vector2(0.5f, 0.5f), Vector2.zero,
+            new Vector2(520f, 70f), new Color(0.08f, 0.05f, 0.20f, 1f), config.PanelBorderColor, config.SecondaryTextColor, 23f);
         view.PauseHomeButton = CreateButton(
             "PauseHomeButton", view.PauseCard, "HOME",
-            new Vector2(0.5f, 0.09f), new Vector2(0.5f, 0.09f), new Vector2(0.5f, 0.5f), Vector2.zero,
-            new Vector2(400f, 56f), new Color(0.08f, 0.05f, 0.20f, 1f), config.PanelBorderColor, config.SecondaryTextColor, 19f);
+            new Vector2(0.5f, 0.12f), new Vector2(0.5f, 0.12f), new Vector2(0.5f, 0.5f), Vector2.zero,
+            new Vector2(520f, 68f), new Color(0.08f, 0.05f, 0.20f, 1f), config.PanelBorderColor, config.SecondaryTextColor, 22f);
     }
 
     private static RectTransform CreatePanel(
@@ -470,6 +365,8 @@ public static class GameUIBuilder
         if (!string.IsNullOrEmpty(skin))
             ATSPremiumSkin.Apply(rect.GetComponent<Image>(), skin, new Vector4(30f, 30f, 30f, 30f));
         Button button = rect.gameObject.AddComponent<Button>();
+        if (!string.IsNullOrEmpty(skin))
+            button.gameObject.AddComponent<ATSButtonMotion>();
         button.transition = Selectable.Transition.ColorTint;
         Navigation navigation = button.navigation;
         navigation.mode = Navigation.Mode.None;
