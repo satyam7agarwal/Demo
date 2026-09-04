@@ -836,7 +836,7 @@ public sealed class ATSFrontendController : MonoBehaviour
             ATSPremiumSkin.Apply(card.Background, active ? "character_card_selected" : "character_card", new Vector4(28f, 28f, 28f, 28f));
             if (card.Border != null)
                 card.Border.enabled = false;
-            card.Badge.text = active ? "✓  SELECTED" : "SELECT";
+            card.Badge.text = active ? "SELECTED" : "SELECT";
             card.Badge.color = active ? config.LimeColor : config.SecondaryTextColor;
         }
 
