@@ -294,11 +294,13 @@ public sealed class ATSFrontendController : MonoBehaviour
         Image playIcon = CreateImage("PlayIcon", play.transform, Color.white, new Vector2(0.12f, 0.5f), new Vector2(0.12f, 0.5f), Vector2.zero, new Vector2(46f, 46f));
         ATSPremiumSkin.Apply(playIcon, "icon_play", Vector4.zero, false);
         playIcon.raycastTarget = false;
+        // Premium campaign flow: Home PLAY opens the campaign map first.
+        // The player can inspect progress/select a level there, and only the
+        // campaign detail PLAY button starts gameplay.
         play.onClick.AddListener(() =>
         {
             Click();
-            int target = Mathf.Clamp(ATSPlayerProgress.LastPlayedLevel, 1, Mathf.Max(1, levels.Length));
-            levelManager.StartLevelByNumber(target);
+            ShowLevelSelect();
         });
 
         CreateMenuButton(panel, "CHARACTERS", 0.245f, ShowCharacterSelect);
