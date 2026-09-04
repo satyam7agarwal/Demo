@@ -91,6 +91,11 @@ MonoBehaviour:
   ChestShare: 0.46
   UpperChestShare: 0.2
   HeadAimContribution: 0.08
+  HumanoidNeckAimContribution: 0.18
+  HumanoidHeadAimContribution: 0.3
+  HumanoidHeadFollowSmoothTime: 0.055
+  HumanoidMaxNeckFollowAngle: 14
+  HumanoidMaxHeadFollowAngle: 22
   ArmAimWeight: 1
   PreferShoulderBones: 1
   BowVisualRelativePath: 

@@ -65,6 +65,11 @@ public sealed class Archer3DVisualController : MonoBehaviour
     private float currentAimAngle;
     private float aimVelocity;
 
+    // Humanoid-only visual look follow. Kept separate from gameplay aim and
+    // from Kevin's legacy head contribution.
+    private float currentHeadFollowAngle;
+    private float headFollowVelocity;
+
     private float poseBlend;
     private float poseBlendVelocity;
 
@@ -203,6 +208,8 @@ public sealed class Archer3DVisualController : MonoBehaviour
         targetAimAngle = 0f;
         currentAimAngle = 0f;
         aimVelocity = 0f;
+        currentHeadFollowAngle = 0f;
+        headFollowVelocity = 0f;
 
         poseBlend = 0f;
         poseBlendVelocity = 0f;
@@ -767,6 +774,7 @@ public sealed class Archer3DVisualController : MonoBehaviour
 
         if (Mathf.Abs(totalAngle) < 0.001f)
         {
+            ApplyHeadFollow(0f, 0f);
             return;
         }
 
@@ -914,18 +922,67 @@ public sealed class Archer3DVisualController : MonoBehaviour
 
     private void ApplyHeadFollow(float totalAngle, float bodyEngagement)
     {
-        if (profile.HeadAimContribution <= 0f)
+        if (profile == null)
             return;
 
-        Transform headBone = head ?? neck;
+        // Preserve Kevin / legacy authored-rig behaviour exactly.
+        if (!UsesHumanoidAutoSockets)
+        {
+            if (profile.HeadAimContribution <= 0f)
+                return;
 
-        if (headBone == null)
+            Transform legacyHeadBone = head ?? neck;
+
+            if (legacyHeadBone == null)
+                return;
+
+            float legacyHeadAngle =
+                totalAngle *
+                profile.HeadAimContribution *
+                bodyEngagement;
+
+            RotateBoneWorldZ(
+                legacyHeadBone,
+                legacyHeadAngle);
+
+            return;
+        }
+
+        if (neck == null && head == null)
             return;
 
-        // Head only joins noticeably at medium/extreme angles.
-        float headAngle = totalAngle * profile.HeadAimContribution * bodyEngagement;
+        // currentAimAngle is already gameplay-smoothed. This second, short
+        // visual damping layer prevents the face from snapping during fast drag
+        // input without affecting the shot/trajectory direction.
+        float dt = Mathf.Max(Time.deltaTime, 0.0001f);
 
-        RotateBoneWorldZ(headBone, headAngle);
+        currentHeadFollowAngle =
+            Mathf.SmoothDampAngle(
+                currentHeadFollowAngle,
+                totalAngle,
+                ref headFollowVelocity,
+                Mathf.Max(0.005f, profile.HumanoidHeadFollowSmoothTime),
+                Mathf.Infinity,
+                dt);
+
+        // Split the look correction across BOTH bones. Neck rotation naturally
+        // carries the head, then the head adds the final gaze tilt.
+        float neckAngle =
+            Mathf.Clamp(
+                currentHeadFollowAngle *
+                profile.HumanoidNeckAimContribution,
+                -profile.HumanoidMaxNeckFollowAngle,
+                profile.HumanoidMaxNeckFollowAngle);
+
+        float headAngle =
+            Mathf.Clamp(
+                currentHeadFollowAngle *
+                profile.HumanoidHeadAimContribution,
+                -profile.HumanoidMaxHeadFollowAngle,
+                profile.HumanoidMaxHeadFollowAngle);
+
+        RotateBoneWorldZ(neck, neckAngle);
+        RotateBoneWorldZ(head, headAngle);
     }
 
     private void CaptureStableBowBinding()

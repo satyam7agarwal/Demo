@@ -176,10 +176,35 @@ public sealed class Archer3DRuntimeProfile : ScriptableObject
     public float UpperChestShare = 0.20f;
 
     [Tooltip(
-        "Extra head follow at stronger angles. " +
-        "Kept deliberately small to avoid a robotic neck.")]
+        "Legacy authored-rig head follow at stronger angles. " +
+        "Kept deliberately small for Kevin.")]
     [Range(0f, 0.25f)]
     public float HeadAimContribution = 0.08f;
+
+    [Header("Humanoid Neck + Head Aim Follow")]
+    [Tooltip(
+        "Neck share used by Humanoid auto-socket characters such as Khaem and Nerissa.")]
+    [Range(0f, 0.35f)]
+    public float HumanoidNeckAimContribution = 0.18f;
+
+    [Tooltip(
+        "Additional head share used by Humanoid auto-socket characters.")]
+    [Range(0f, 0.40f)]
+    public float HumanoidHeadAimContribution = 0.30f;
+
+    [Tooltip(
+        "Independent visual damping for Humanoid neck/head follow. " +
+        "Does not affect projectile or trajectory aim.")]
+    [Range(0.005f, 0.2f)]
+    public float HumanoidHeadFollowSmoothTime = 0.055f;
+
+    [Tooltip("Maximum extra Humanoid neck tilt from aim follow.")]
+    [Range(0f, 30f)]
+    public float HumanoidMaxNeckFollowAngle = 14f;
+
+    [Tooltip("Maximum extra Humanoid head tilt from aim follow.")]
+    [Range(0f, 40f)]
+    public float HumanoidMaxHeadFollowAngle = 22f;
 
     [Tooltip(
         "1 = arms use all remaining angle after the torso contribution.")]
@@ -360,6 +385,15 @@ public sealed class Archer3DRuntimeProfile : ScriptableObject
 
         PoseBlendSmoothTime =
             Mathf.Max(0.005f, PoseBlendSmoothTime);
+
+        HumanoidHeadFollowSmoothTime =
+            Mathf.Max(0.005f, HumanoidHeadFollowSmoothTime);
+
+        HumanoidMaxNeckFollowAngle =
+            Mathf.Max(0f, HumanoidMaxNeckFollowAngle);
+
+        HumanoidMaxHeadFollowAngle =
+            Mathf.Max(0f, HumanoidMaxHeadFollowAngle);
 
         MaxAimSpeed =
             Mathf.Max(30f, MaxAimSpeed);
