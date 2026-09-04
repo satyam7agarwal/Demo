@@ -431,7 +431,7 @@ public sealed class ATSFrontendController : MonoBehaviour
 
         characterPreviewName = CreateText("PreviewName", info, "", 44f, config.PrimaryTextColor, FontStyles.Bold);
         characterPreviewName.alignment = TextAlignmentOptions.Left;
-        characterPreviewName.enableWordWrapping = true;
+        characterPreviewName.textWrappingMode = TextWrappingModes.Normal;
         Place(characterPreviewName.rectTransform, new Vector2(0f, 0.61f), new Vector2(1f, 0.82f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
 
         characterPreviewRole = CreateText("PreviewRole", info, "", 21f, config.SecondaryTextColor, FontStyles.Bold);
@@ -444,7 +444,7 @@ public sealed class ATSFrontendController : MonoBehaviour
 
         TMP_Text note = CreateText("PreviewNote", info, "Your archer is remembered\nbetween sessions.", 17f, config.SecondaryTextColor, FontStyles.Normal);
         note.alignment = TextAlignmentOptions.Left;
-        note.enableWordWrapping = true;
+        note.textWrappingMode = TextWrappingModes.Normal;
         Place(note.rectTransform, new Vector2(0f, 0.18f), new Vector2(1f, 0.38f), new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero);
 
         characterPreview = gameObject.AddComponent<ATSCharacterPreview>();
@@ -645,7 +645,7 @@ public sealed class ATSFrontendController : MonoBehaviour
 
         campaignDetailDescription = CreateText("DetailDescription", detail, "", 17f, config.PrimaryTextColor, FontStyles.Normal);
         campaignDetailDescription.alignment = TextAlignmentOptions.Center;
-        campaignDetailDescription.enableWordWrapping = true;
+        campaignDetailDescription.textWrappingMode = TextWrappingModes.Normal;
         Place(campaignDetailDescription.rectTransform, new Vector2(0.09f, 0.315f), new Vector2(0.91f, 0.425f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
 
         Image detailDivider = CreateImage("DetailDivider", detail,
@@ -661,7 +661,7 @@ public sealed class ATSFrontendController : MonoBehaviour
         Place(campaignDetailScore.rectTransform, new Vector2(0.52f, 0.215f), new Vector2(0.91f, 0.285f), new Vector2(1f, 0.5f), Vector2.zero, Vector2.zero);
 
         campaignDetailLock = CreateText("DetailLock", detail, "", 12f, config.YellowColor, FontStyles.Bold);
-        campaignDetailLock.enableWordWrapping = true;
+        campaignDetailLock.textWrappingMode = TextWrappingModes.Normal;
         Place(campaignDetailLock.rectTransform, new Vector2(0.08f, 0.145f), new Vector2(0.92f, 0.205f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
 
         campaignPlayButton = CreateButton("CampaignPlay", detail, "PLAY",
@@ -1262,7 +1262,7 @@ public sealed class ATSFrontendController : MonoBehaviour
         text.color = color;
         text.alignment = TextAlignmentOptions.Center;
         text.raycastTarget = false;
-        text.enableWordWrapping = false;
+        text.textWrappingMode = TextWrappingModes.NoWrap;
         return text;
     }
 
