@@ -47,12 +47,9 @@ public sealed class Mirror : MonoBehaviour
         if (mirrorCollider == null)
             return;
 
-        bool reflected = arrow.ReflectFromMirror(
+        arrow.ReflectFromMirror(
             mirrorCollider,
             mirrorCollider.transform.right);
-
-        if (reflected)
-            PlayRicochetPulse();
     }
 
     /// <summary>
@@ -84,14 +81,11 @@ public sealed class Mirror : MonoBehaviour
         if (incomingDirection.sqrMagnitude < 0.0001f)
             incomingDirection = arrow.GetVelocity();
 
-        bool reflected = arrow.ReflectAtContact(
+        arrow.ReflectAtContact(
             incomingDirection,
             contact.point,
             mirrorCollider.transform.right,
             mirrorCollider);
-
-        if (reflected)
-            PlayRicochetPulse();
     }
 
     private void EnsureGlowRenderer()
@@ -131,7 +125,7 @@ public sealed class Mirror : MonoBehaviour
         glowRenderer.transform.localScale = Vector3.one;
     }
 
-    private void PlayRicochetPulse()
+    public void PlayRicochetPulse(int chainCount)
     {
         if (!isActiveAndEnabled)
             return;
@@ -142,23 +136,52 @@ public sealed class Mirror : MonoBehaviour
             RestoreVisualState();
         }
 
-        pulseRoutine = StartCoroutine(RicochetPulseRoutine());
+        pulseRoutine = StartCoroutine(
+            RicochetPulseRoutine(
+                Mathf.Max(1, chainCount)));
     }
 
-    private IEnumerator RicochetPulseRoutine()
+    private IEnumerator RicochetPulseRoutine(
+        int chainCount)
     {
+        int tier =
+            Mathf.Clamp(
+                chainCount,
+                1,
+                4);
+
         float duration = Mathf.Max(
             0.05f,
-            config != null
+            (config != null
                 ? config.MirrorPulseDuration
-                : 0.12f);
+                : 0.12f) *
+            (1f + (tier - 1) * 0.08f));
 
-        float peakScale = config != null
-            ? config.MirrorPulseScale
-            : 1.055f;
+        float peakScale =
+            Mathf.Min(
+                1.14f,
+                (config != null
+                    ? config.MirrorPulseScale
+                    : 1.055f) +
+                (tier - 1) * 0.018f);
 
-        Color flashColor =
-            new Color(0.72f, 0.98f, 1f, 1f);
+        Color flashColor = tier switch
+        {
+            1 => new Color(0.62f, 0.96f, 1f, 1f),
+            2 => new Color(1f, 0.90f, 0.34f, 1f),
+            3 => new Color(1f, 0.66f, 0.10f, 1f),
+            _ => new Color(1f, 0.96f, 0.58f, 1f)
+        };
+
+        float peakBlend =
+            Mathf.Clamp01(
+                0.34f +
+                (tier - 1) * 0.075f);
+
+        float peakGlow =
+            Mathf.Clamp01(
+                0.42f +
+                (tier - 1) * 0.09f);
 
         float half = duration * 0.45f;
         float elapsed = 0f;
@@ -171,7 +194,7 @@ public sealed class Mirror : MonoBehaviour
 
             ApplyColorBlend(
                 flashColor,
-                Mathf.Lerp(0f, 0.34f, eased));
+                Mathf.Lerp(0f, peakBlend, eased));
 
             if (glowRenderer != null)
             {
@@ -179,7 +202,7 @@ public sealed class Mirror : MonoBehaviour
                     Vector3.one * Mathf.Lerp(1f, peakScale, eased);
 
                 Color glow = flashColor;
-                glow.a = Mathf.Lerp(0f, 0.42f, eased);
+                glow.a = Mathf.Lerp(0f, peakGlow, eased);
                 glowRenderer.color = glow;
             }
 
@@ -196,7 +219,7 @@ public sealed class Mirror : MonoBehaviour
 
             ApplyColorBlend(
                 flashColor,
-                Mathf.Lerp(0.34f, 0f, t));
+                Mathf.Lerp(peakBlend, 0f, t));
 
             if (glowRenderer != null)
             {
@@ -204,7 +227,7 @@ public sealed class Mirror : MonoBehaviour
                     Vector3.one * Mathf.Lerp(peakScale, 1f, t);
 
                 Color glow = flashColor;
-                glow.a = Mathf.Lerp(0.42f, 0f, t);
+                glow.a = Mathf.Lerp(peakGlow, 0f, t);
                 glowRenderer.color = glow;
             }
 

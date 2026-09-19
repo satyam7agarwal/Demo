@@ -14,7 +14,13 @@ public sealed class GameUIView
     public TMP_Text FullTraceButtonText;
 
     public TMP_Text FeedbackText;
+    public Image RicochetBackdrop;
+    public CanvasGroup RicochetBackdropGroup;
     public TMP_Text RicochetText;
+    public Image[] RicochetComboSegments;
+    // Legacy v1 fields kept for safe compatibility; v2 no longer builds them.
+    public Image RicochetComboTrack;
+    public Image RicochetComboFill;
     public Image ScreenFlash;
 
     public CanvasGroup ResultOverlay;

@@ -325,22 +325,55 @@ public sealed class GameAudioController : MonoBehaviour
         if (!sfxEnabled || mirrorClip == null)
             return;
 
+        gameConfig ??= GameConfig.Load();
+
+        int tier =
+            Mathf.Clamp(
+                chainCount,
+                1,
+                4);
+
+        float pitchStep =
+            gameConfig != null
+                ? gameConfig.RicochetAudioPitchStep
+                : 0.075f;
+
+        float volumeStep =
+            gameConfig != null
+                ? gameConfig.RicochetAudioVolumeStep
+                : 0.075f;
+
+        float volumeMultiplier =
+            1f +
+            (tier - 1) *
+            volumeStep;
+
         if (ricochetSource == null)
         {
-            Play(mirrorClip, impactVolume);
+            Play(
+                mirrorClip,
+                Mathf.Clamp01(
+                    impactVolume *
+                    volumeMultiplier));
             return;
         }
 
-        // Each bounce rises slightly in pitch, turning a multi-ricochet shot
-        // into a satisfying audible combo without needing extra audio assets.
-        ricochetSource.pitch = Mathf.Clamp(
-            0.96f + Mathf.Max(0, chainCount - 1) * 0.055f,
-            0.96f,
-            1.24f);
+        // Combo Fever: every tier rises audibly without requiring another
+        // asset. The cap avoids turning the fourth bounce into a cartoon chirp.
+        ricochetSource.pitch =
+            Mathf.Clamp(
+                0.96f +
+                (tier - 1) *
+                pitchStep,
+                0.96f,
+                1.30f);
 
         ricochetSource.PlayOneShot(
             mirrorClip,
-            Mathf.Clamp01(sfxVolume * impactVolume));
+            Mathf.Clamp01(
+                sfxVolume *
+                impactVolume *
+                volumeMultiplier));
     }
 
     public void PlayTargetHit()

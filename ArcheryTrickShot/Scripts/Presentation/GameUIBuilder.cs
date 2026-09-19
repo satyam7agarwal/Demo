@@ -168,19 +168,113 @@ public static class GameUIBuilder
         view.FeedbackText.fontSizeMax = 58f;
         AddTextShadow(view.FeedbackText.gameObject, new Color(0f, 0f, 0f, 0.5f), new Vector2(3f, -3f));
 
-        view.RicochetText = CreateText("RicochetFeedback", root, string.Empty, 36f, config.YellowColor, FontStyles.Bold);
-        RectTransform ricochetRect = view.RicochetText.rectTransform;
-        ricochetRect.anchorMin = new Vector2(0.5f, 0.70f);
-        ricochetRect.anchorMax = new Vector2(0.5f, 0.70f);
-        ricochetRect.pivot = new Vector2(0.5f, 0.5f);
-        ricochetRect.anchoredPosition = Vector2.zero;
-        ricochetRect.sizeDelta = new Vector2(760f, 72f);
+        // Ricochet Combo Fever lives in a dedicated bottom-center HUD lane.
+        // Targets/mirrors frequently occupy the upper half, so this keeps the
+        // mastery feedback away from puzzle geometry and Update-A framing.
+        RectTransform ricochetPanel =
+            CreatePanel(
+                "RicochetComboPanel",
+                root,
+                new Color(
+                    config.PanelColor.r,
+                    config.PanelColor.g,
+                    config.PanelColor.b,
+                    0.90f),
+                new Color(
+                    config.PanelBorderColor.r,
+                    config.PanelBorderColor.g,
+                    config.PanelBorderColor.b,
+                    0.78f),
+                new Vector2(0.5f, 0f),
+                new Vector2(0.5f, 0f),
+                new Vector2(0.5f, 0f),
+                new Vector2(0f, 24f),
+                new Vector2(500f, 86f));
+
+        view.RicochetBackdrop =
+            ricochetPanel.GetComponent<Image>();
+
+        view.RicochetBackdrop.raycastTarget = false;
+
+        view.RicochetBackdropGroup =
+            ricochetPanel.gameObject.AddComponent<CanvasGroup>();
+
+        view.RicochetBackdropGroup.alpha = 1f;
+        view.RicochetBackdropGroup.interactable = false;
+        view.RicochetBackdropGroup.blocksRaycasts = false;
+
+        view.RicochetText =
+            CreateText(
+                "RicochetFeedback",
+                ricochetPanel,
+                string.Empty,
+                32f,
+                config.YellowColor,
+                FontStyles.Bold);
+
+        RectTransform ricochetRect =
+            view.RicochetText.rectTransform;
+
+        ricochetRect.anchorMin =
+            new Vector2(0.5f, 0.62f);
+        ricochetRect.anchorMax =
+            new Vector2(0.5f, 0.62f);
+        ricochetRect.pivot =
+            new Vector2(0.5f, 0.5f);
+        ricochetRect.anchoredPosition =
+            Vector2.zero;
+        ricochetRect.sizeDelta =
+            new Vector2(460f, 48f);
+
         view.RicochetText.enableAutoSizing = true;
-        view.RicochetText.fontSizeMin = 24f;
-        view.RicochetText.fontSizeMax = 36f;
+        view.RicochetText.fontSizeMin = 20f;
+        view.RicochetText.fontSizeMax = 30f;
         view.RicochetText.alpha = 0f;
-        view.RicochetText.gameObject.SetActive(false);
-        AddTextShadow(view.RicochetText.gameObject, new Color(0f, 0f, 0f, 0.55f), new Vector2(2f, -2f));
+        AddTextShadow(
+            view.RicochetText.gameObject,
+            new Color(0f, 0f, 0f, 0.72f),
+            new Vector2(2f, -2f));
+
+        view.RicochetComboSegments =
+            new Image[4];
+
+        // Four is the current global reward cap. v3 treats these as a pool:
+        // per-level logic activates only the number actually achievable.
+        const float pooledSegmentWidth = 96f;
+        const float pooledSegmentGap = 12f;
+        float pooledTotalWidth =
+            pooledSegmentWidth * 4f +
+            pooledSegmentGap * 3f;
+
+        for (int i = 0; i < 4; i++)
+        {
+            float x =
+                -pooledTotalWidth * 0.5f +
+                pooledSegmentWidth * 0.5f +
+                i * (pooledSegmentWidth + pooledSegmentGap);
+
+            Image segment =
+                CreateImage(
+                    $"RicochetSegment{i + 1}",
+                    ricochetPanel,
+                    new Color(0.18f, 0.17f, 0.24f, 0.95f),
+                    new Vector2(0.5f, 0.16f),
+                    new Vector2(0.5f, 0.16f),
+                    new Vector2(x, 0f),
+                    new Vector2(pooledSegmentWidth, 12f));
+
+            segment.sprite =
+                GetRoundedSprite();
+            segment.type =
+                Image.Type.Sliced;
+            segment.raycastTarget =
+                false;
+
+            view.RicochetComboSegments[i] =
+                segment;
+        }
+
+        ricochetPanel.gameObject.SetActive(false);
     }
 
     private static void BuildResultOverlay(RectTransform root, GameConfig config, GameUIView view)
@@ -211,9 +305,12 @@ public static class GameUIBuilder
 
         BuildResultStars(view.ResultCard, config, view);
 
-        view.ResultInfo = CreateText("ResultInfo", view.ResultCard, "SCORE  300\n1 SHOT USED", 28f, config.SecondaryTextColor, FontStyles.Bold);
-        Place(view.ResultInfo.rectTransform, new Vector2(0.5f, 0.475f), new Vector2(0.5f, 0.475f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(700f, 92f));
-        view.ResultInfo.lineSpacing = 10f;
+        view.ResultInfo = CreateText("ResultInfo", view.ResultCard, "SCORE  300\nTARGET  300\n1 SHOT USED", 27f, config.SecondaryTextColor, FontStyles.Bold);
+        Place(view.ResultInfo.rectTransform, new Vector2(0.5f, 0.475f), new Vector2(0.5f, 0.475f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(760f, 128f));
+        view.ResultInfo.enableAutoSizing = true;
+        view.ResultInfo.fontSizeMin = 20f;
+        view.ResultInfo.fontSizeMax = 27f;
+        view.ResultInfo.lineSpacing = 7f;
 
         view.ResultPrimaryButton = CreateButton(
             "PrimaryButton", view.ResultCard, "NEXT LEVEL  >>",

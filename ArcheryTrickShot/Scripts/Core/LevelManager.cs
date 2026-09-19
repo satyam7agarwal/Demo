@@ -36,9 +36,16 @@ public sealed class LevelManager : MonoBehaviour
     private LevelData currentLevel;
     private int shotsUsed;
     private int currentLevelScore;
+    private int currentLevelTargetScore;
+    private int currentLevelStyleScore;
     private TargetHitResult lastTargetHitResult;
     private bool fullTrajectoryPreviewEnabled;
     private int currentShotRicochets;
+    private int currentShotStyleBonus;
+    private bool currentShotStyleBonusCommitted;
+    private int currentLevelMaxRewardedRicochetMirrors;
+    private readonly HashSet<int> currentShotUniqueMirrorIds =
+        new HashSet<int>();
 
     private const int FinalApproachRaycastBufferSize = 24;
     private readonly RaycastHit2D[] finalApproachRaycastHits =
@@ -180,6 +187,10 @@ public sealed class LevelManager : MonoBehaviour
 
         currentArrow.SetCinematicTrail(true);
 
+        // The ricochet HUD now lives in the bottom-center safe area, so it no
+        // longer competes with Update-A's target cinematic. Let the latest
+        // ricochet label finish its normal short display instead of cancelling
+        // DOUBLE RICOCHET / TRICK SHOT immediately after the final mirror.
         audioController?.BeginFinalApproach(
             finalApproachWasTrickShot,
             finalApproachPredictedBullseye);
@@ -338,8 +349,12 @@ public sealed class LevelManager : MonoBehaviour
         currentState = LevelState.Loading;
         shotsUsed = 0;
         currentLevelScore = 0;
+        currentLevelTargetScore = 0;
+        currentLevelStyleScore = 0;
         lastTargetHitResult = default;
-        currentShotRicochets = 0;
+        currentLevelMaxRewardedRicochetMirrors =
+            ResolveCurrentLevelRicochetGoal();
+        ResetShotComboState();
 
         bow.transform.position = new Vector3(
             currentLevel.ArcherPosition.x,
@@ -351,7 +366,10 @@ public sealed class LevelManager : MonoBehaviour
         CreateLevelParent();
         SpawnLevelObjects();
 
-        gameUI.PrepareForLevel(currentLevel.LevelNumber, currentLevel.MaxShots);
+        gameUI.PrepareForLevel(
+            currentLevel.LevelNumber,
+            currentLevel.MaxShots,
+            currentLevelMaxRewardedRicochetMirrors);
         gameUI.SetFullTrajectoryPreviewEnabled(fullTrajectoryPreviewEnabled);
         bow.SetFullTrajectoryPreviewEnabled(fullTrajectoryPreviewEnabled);
 
@@ -420,7 +438,7 @@ public sealed class LevelManager : MonoBehaviour
         }
 
         Transform spawnPoint = bow.ArrowSpawnPoint;
-        currentShotRicochets = 0;
+        ResetShotComboState();
 
         if (arrowPool.Count > 0)
         {
@@ -479,7 +497,9 @@ public sealed class LevelManager : MonoBehaviour
         if (currentState != LevelState.Playing)
             return;
 
-        currentShotRicochets = 0;
+        // CreateArrow resets combo state. Keep UI explicitly clean on the
+        // release frame so a previous failed-shot combo can never leak forward.
+        gameUI?.ResetRicochetCombo();
         finalApproachActive = false;
         finalApproachWasTrickShot = false;
         finalApproachPredictedBullseye = false;
@@ -498,7 +518,28 @@ public sealed class LevelManager : MonoBehaviour
             return;
 
         lastTargetHitResult = result;
-        currentLevelScore += result.Score;
+
+        currentLevelTargetScore +=
+            result.Score;
+
+        int committedStyleBonus = 0;
+
+        // Style is earned only when the shot actually reaches a scoring face.
+        // Repeated target callbacks (or future multi-target logic) cannot award
+        // the same shot's ricochet bonus more than once.
+        if (!currentShotStyleBonusCommitted)
+        {
+            currentShotStyleBonusCommitted = true;
+            committedStyleBonus =
+                currentShotStyleBonus;
+
+            currentLevelStyleScore +=
+                committedStyleBonus;
+        }
+
+        currentLevelScore +=
+            result.Score +
+            committedStyleBonus;
 
         gameUI.PlayHitFeedback(
             result.Label,
@@ -508,6 +549,7 @@ public sealed class LevelManager : MonoBehaviour
 
         Debug.Log(
             $"{result.Label} +{result.Score} " +
+            $"+ STYLE {committedStyleBonus} " +
             $"(Level score: {currentLevelScore})");
     }
 
@@ -619,16 +661,22 @@ public sealed class LevelManager : MonoBehaviour
             shotsUsed,
             currentLevel.MaxShots,
             currentLevelScore,
+            currentLevelTargetScore,
+            currentLevelStyleScore,
             hitLabel,
             isBullseye,
             isLastLevel,
-            currentShotRicochets);
+            currentShotRicochets,
+            GetRewardedUniqueMirrorCount());
 
         audioController?.PlayLevelComplete();
         resolutionRoutine = null;
     }
 
-    private void OnArrowReflected()
+    private void OnArrowReflected(
+        int chainCount,
+        Collider2D mirrorCollider,
+        Vector2 contactPoint)
     {
         if (currentState != LevelState.Playing)
             return;
@@ -638,11 +686,41 @@ public sealed class LevelManager : MonoBehaviour
         if (finalApproachActive)
             CancelFinalApproach();
 
-        currentShotRicochets++;
+        currentShotRicochets =
+            Mathf.Max(
+                currentShotRicochets,
+                chainCount);
+
+        bool newUniqueMirror = false;
+
+        if (mirrorCollider != null)
+        {
+            newUniqueMirror =
+                currentShotUniqueMirrorIds.Add(
+                    mirrorCollider.GetInstanceID());
+        }
+
+        int uniqueMirrorCount =
+            GetRewardedUniqueMirrorCount();
+
+        currentShotStyleBonus =
+            CalculateRicochetStyleBonus(
+                uniqueMirrorCount);
+
         ATSHaptics.Pulse();
-        audioController?.PlayMirror(currentShotRicochets);
-        gameFeel?.PlayRicochetFeedback();
-        gameUI?.PlayRicochetFeedback(currentShotRicochets);
+
+        audioController?.PlayMirror(
+            currentShotRicochets);
+
+        gameFeel?.PlayRicochetFeedback(
+            currentShotRicochets,
+            contactPoint);
+
+        gameUI?.PlayRicochetFeedback(
+            currentShotRicochets,
+            uniqueMirrorCount,
+            currentShotStyleBonus,
+            newUniqueMirror);
     }
 
     private void OnSolidCollision()
@@ -666,6 +744,7 @@ public sealed class LevelManager : MonoBehaviour
         currentState = LevelState.ResolvingShot;
         bow.SetInputEnabled(false);
         currentArrow?.Stop();
+        gameUI?.ResetRicochetCombo();
 
         int shotsRemaining = Mathf.Max(0, currentLevel.MaxShots - shotsUsed);
         gameUI.PlayMissFeedback(shotsRemaining);
@@ -763,6 +842,103 @@ public sealed class LevelManager : MonoBehaviour
             bow.gameObject.SetActive(false);
         gameUI?.SetGameplayVisible(false);
         audioController?.ResumeMusic();
+    }
+
+    private int ResolveCurrentLevelRicochetGoal()
+    {
+        if (currentLevel == null)
+            return 0;
+
+        int globalCap =
+            config != null
+                ? Mathf.Max(
+                    0,
+                    config.RicochetMaxRewardedUniqueMirrors)
+                : 4;
+
+        if (globalCap <= 0)
+            return 0;
+
+        // Explicit authoring wins. This is important for future levels that
+        // contain decorative/optional/unreachable mirrors.
+        if (currentLevel.MaxRewardedRicochetMirrors > 0)
+        {
+            return Mathf.Clamp(
+                currentLevel.MaxRewardedRicochetMirrors,
+                1,
+                globalCap);
+        }
+
+        // Existing levels need no manual edits: auto-detect their mirror count.
+        int authoredMirrorCount = 0;
+
+        if (currentLevel.Objects != null)
+        {
+            for (int i = 0;
+                 i < currentLevel.Objects.Length;
+                 i++)
+            {
+                LevelData.LevelObjectData data =
+                    currentLevel.Objects[i];
+
+                if (data != null &&
+                    data.Type ==
+                        LevelData.ObjectType.Mirror)
+                {
+                    authoredMirrorCount++;
+                }
+            }
+        }
+
+        return Mathf.Clamp(
+            authoredMirrorCount,
+            0,
+            globalCap);
+    }
+
+    private int GetRewardedUniqueMirrorCount()
+    {
+        return Mathf.Clamp(
+            currentShotUniqueMirrorIds.Count,
+            0,
+            Mathf.Max(
+                0,
+                currentLevelMaxRewardedRicochetMirrors));
+    }
+
+    private void ResetShotComboState()
+    {
+        currentShotRicochets = 0;
+        currentShotStyleBonus = 0;
+        currentShotStyleBonusCommitted = false;
+        currentShotUniqueMirrorIds.Clear();
+        gameUI?.ResetRicochetCombo();
+    }
+
+    private int CalculateRicochetStyleBonus(
+        int uniqueMirrorCount)
+    {
+        if (config == null ||
+            uniqueMirrorCount <= 0)
+        {
+            return 0;
+        }
+
+        int rewardedMirrors =
+            Mathf.Clamp(
+                uniqueMirrorCount,
+                0,
+                Mathf.Max(
+                    0,
+                    currentLevelMaxRewardedRicochetMirrors));
+
+        return rewardedMirrors switch
+        {
+            1 => config.RicochetStyleBonus1,
+            2 => config.RicochetStyleBonus2,
+            3 => config.RicochetStyleBonus3,
+            _ => config.RicochetStyleBonus4
+        };
     }
 
     private static int CalculateStars(int usedShots, int maxShots)

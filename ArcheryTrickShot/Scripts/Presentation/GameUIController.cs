@@ -14,6 +14,7 @@ public sealed class GameUIController : MonoBehaviour
     private Coroutine pauseRoutine;
     private Coroutine feedbackRoutine;
     private Coroutine ricochetRoutine;
+    private int ricochetGoalSegments;
     private Coroutine shotsPunchRoutine;
     private Coroutine hudRoutine;
 
@@ -91,7 +92,10 @@ public sealed class GameUIController : MonoBehaviour
         }
     }
 
-    public void PrepareForLevel(int levelNumber, int maxShots)
+    public void PrepareForLevel(
+        int levelNumber,
+        int maxShots,
+        int maxRewardedRicochetMirrors)
     {
         BindButtons();
         StopPresentationCoroutines();
@@ -103,11 +107,8 @@ public sealed class GameUIController : MonoBehaviour
 
         view.FeedbackText.alpha = 0f;
         view.FeedbackText.gameObject.SetActive(false);
-        if (view.RicochetText != null)
-        {
-            view.RicochetText.alpha = 0f;
-            view.RicochetText.gameObject.SetActive(false);
-        }
+        ConfigureRicochetGoal(maxRewardedRicochetMirrors);
+        ResetRicochetCombo();
 
         view.HudGroup.gameObject.SetActive(true);
         view.HudGroup.alpha = 0f;
@@ -253,65 +254,403 @@ public sealed class GameUIController : MonoBehaviour
             cinematic);
     }
 
-    public void PlayRicochetFeedback(int ricochetCount)
+    public void PlayRicochetFeedback(
+        int ricochetCount,
+        int uniqueMirrorCount,
+        int styleBonus,
+        bool newUniqueMirror)
     {
-        if (view?.RicochetText == null || ricochetCount <= 0)
+        if (view?.RicochetText == null ||
+            ricochetCount <= 0)
+        {
             return;
+        }
 
         if (ricochetRoutine != null)
             StopCoroutine(ricochetRoutine);
 
         ricochetRoutine = StartCoroutine(
-            RicochetSequence(ricochetCount));
+            RicochetSequence(
+                ricochetCount,
+                uniqueMirrorCount,
+                styleBonus,
+                newUniqueMirror));
     }
 
-    private IEnumerator RicochetSequence(int ricochetCount)
+    private void ConfigureRicochetGoal(
+        int maxRewardedRicochetMirrors)
     {
-        string label = ricochetCount switch
+        if (view?.RicochetComboSegments == null)
         {
-            1 => "RICOCHET!",
-            2 => "DOUBLE RICOCHET!",
-            3 => "TRIPLE RICOCHET!",
-            _ => $"{ricochetCount}x RICOCHET!"
-        };
+            ricochetGoalSegments = 0;
+            return;
+        }
 
-        TMP_Text text = view.RicochetText;
+        ricochetGoalSegments =
+            Mathf.Clamp(
+                maxRewardedRicochetMirrors,
+                0,
+                view.RicochetComboSegments.Length);
+
+        const float maxSegmentWidth = 105f;
+        const float gap = 12f;
+
+        float totalWidth =
+            ricochetGoalSegments > 0
+                ? maxSegmentWidth *
+                    ricochetGoalSegments +
+                    gap *
+                    (ricochetGoalSegments - 1)
+                : 0f;
+
+        for (int i = 0;
+             i < view.RicochetComboSegments.Length;
+             i++)
+        {
+            Image segment =
+                view.RicochetComboSegments[i];
+
+            if (segment == null)
+                continue;
+
+            bool active =
+                i < ricochetGoalSegments;
+
+            segment.gameObject.SetActive(active);
+
+            if (!active)
+                continue;
+
+            float x =
+                -totalWidth * 0.5f +
+                maxSegmentWidth * 0.5f +
+                i * (maxSegmentWidth + gap);
+
+            segment.rectTransform.anchoredPosition =
+                new Vector2(x, 0f);
+
+            segment.rectTransform.sizeDelta =
+                new Vector2(
+                    maxSegmentWidth,
+                    12f);
+        }
+    }
+
+    public void ResetRicochetCombo()
+    {
+        if (view == null)
+            return;
+
+        if (ricochetRoutine != null)
+        {
+            StopCoroutine(ricochetRoutine);
+            ricochetRoutine = null;
+        }
+
+        if (view.RicochetText != null)
+        {
+            view.RicochetText.alpha = 0f;
+            view.RicochetText.rectTransform.localScale =
+                Vector3.one;
+            view.RicochetText.text =
+                string.Empty;
+        }
+
+        ResetRicochetSegments();
+
+        if (view.RicochetBackdrop != null)
+        {
+            view.RicochetBackdrop
+                .gameObject
+                .SetActive(false);
+        }
+
+        // Legacy v1 meter should never appear in v2.
+        if (view.RicochetComboTrack != null)
+            view.RicochetComboTrack.gameObject.SetActive(false);
+    }
+
+    public void HideRicochetPopForFinalApproach()
+    {
+        if (view == null)
+            return;
+
+        if (ricochetRoutine != null)
+        {
+            StopCoroutine(ricochetRoutine);
+            ricochetRoutine = null;
+        }
+
+        if (view.RicochetText != null)
+        {
+            view.RicochetText.alpha = 0f;
+            view.RicochetText.rectTransform.localScale =
+                Vector3.one;
+        }
+
+        // Keep the compact banked-style meter visible at the top while
+        // Update A runs; remove only the animated text so the two celebrations
+        // never compete with each other.
+    }
+
+    private void ResetRicochetSegments()
+    {
+        if (view?.RicochetComboSegments == null)
+            return;
+
+        Color idle =
+            new Color(
+                0.18f,
+                0.17f,
+                0.24f,
+                0.95f);
+
+        for (int i = 0;
+             i < view.RicochetComboSegments.Length;
+             i++)
+        {
+            Image segment =
+                view.RicochetComboSegments[i];
+
+            if (segment == null)
+                continue;
+
+            segment.gameObject.SetActive(
+                i < ricochetGoalSegments);
+
+            segment.color =
+                idle;
+
+            segment.rectTransform.localScale =
+                Vector3.one;
+        }
+    }
+
+    private void UpdateRicochetSegments(
+        int uniqueMirrorCount,
+        Color accent)
+    {
+        if (view?.RicochetComboSegments == null)
+            return;
+
+        Color idle =
+            new Color(
+                0.18f,
+                0.17f,
+                0.24f,
+                0.95f);
+
+        int litCount =
+            Mathf.Clamp(
+                uniqueMirrorCount,
+                0,
+                ricochetGoalSegments);
+
+        for (int i = 0;
+             i < view.RicochetComboSegments.Length;
+             i++)
+        {
+            Image segment =
+                view.RicochetComboSegments[i];
+
+            if (segment == null)
+                continue;
+
+            bool active =
+                i < ricochetGoalSegments;
+
+            segment.gameObject.SetActive(active);
+
+            if (!active)
+                continue;
+
+            bool lit =
+                i < litCount;
+
+            segment.color =
+                lit
+                    ? accent
+                    : idle;
+
+            segment.rectTransform.localScale =
+                lit
+                    ? new Vector3(1f, 1.18f, 1f)
+                    : Vector3.one;
+        }
+    }
+
+    private IEnumerator RicochetSequence(
+        int ricochetCount,
+        int uniqueMirrorCount,
+        int styleBonus,
+        bool newUniqueMirror)
+    {
+        if (ricochetGoalSegments <= 0)
+        {
+            ricochetRoutine = null;
+            yield break;
+        }
+
+        int tier =
+            Mathf.Clamp(
+                ricochetCount,
+                1,
+                4);
+
+        string label =
+            tier switch
+            {
+                1 => "RICOCHET!",
+                2 => "DOUBLE RICOCHET!",
+                3 => "TRICK SHOT!",
+                _ => "MASTER SHOT!"
+            };
+
+        Color accent =
+            GetRicochetTierColor(
+                tier);
+
+        TMP_Text text =
+            view.RicochetText;
+
+        if (view.RicochetBackdrop != null)
+        {
+            view.RicochetBackdrop
+                .gameObject
+                .SetActive(true);
+        }
+
         text.gameObject.SetActive(true);
-        text.text = label;
-        text.color = config.YellowColor;
-        text.alpha = 0f;
-        text.rectTransform.localScale = new Vector3(0.78f, 0.78f, 1f);
+        text.text =
+            $"{label}  x{ricochetCount}   " +
+            $"<size=72%>STYLE +{styleBonus:N0}</size>";
+        text.color =
+            accent;
+        text.alpha =
+            0f;
+        text.rectTransform.localScale =
+            new Vector3(
+                0.86f,
+                0.86f,
+                1f);
 
-        const float enterDuration = 0.10f;
-        float elapsed = 0f;
-        while (elapsed < enterDuration)
+        // Unique mirrors drive the persistent four-stage style meter.
+        // Repeated bounces can escalate the label but cannot light extra
+        // segments or farm additional style score.
+        UpdateRicochetSegments(
+            uniqueMirrorCount,
+            accent);
+
+        float peakScale =
+            Mathf.Lerp(
+                1.035f,
+                1.09f,
+                (tier - 1) / 3f);
+
+        if (!newUniqueMirror)
+            peakScale -= 0.015f;
+
+        const float enterDuration =
+            0.10f;
+
+        float elapsed =
+            0f;
+
+        while (elapsed <
+               enterDuration)
         {
-            elapsed += Time.unscaledDeltaTime;
-            float t = Mathf.Clamp01(elapsed / enterDuration);
-            float scale = Mathf.LerpUnclamped(0.78f, 1.06f, EaseOutBack(t));
-            text.alpha = t;
-            text.rectTransform.localScale = new Vector3(scale, scale, 1f);
+            elapsed +=
+                Time.unscaledDeltaTime;
+
+            float t =
+                Mathf.Clamp01(
+                    elapsed /
+                    enterDuration);
+
+            float scale =
+                Mathf.LerpUnclamped(
+                    0.86f,
+                    peakScale,
+                    EaseOutBack(t));
+
+            text.alpha =
+                t;
+
+            text.rectTransform.localScale =
+                new Vector3(
+                    scale,
+                    scale,
+                    1f);
+
             yield return null;
         }
 
-        text.rectTransform.localScale = Vector3.one;
-        yield return new WaitForSecondsRealtime(0.20f);
+        text.alpha =
+            1f;
+        text.rectTransform.localScale =
+            Vector3.one;
 
-        const float exitDuration = 0.16f;
-        elapsed = 0f;
-        while (elapsed < exitDuration)
+        float holdDuration =
+            config != null
+                ? config.RicochetComboUiHoldDuration
+                : 0.30f;
+
+        yield return
+            new WaitForSecondsRealtime(
+                holdDuration);
+
+        const float exitDuration =
+            0.14f;
+
+        elapsed =
+            0f;
+
+        while (elapsed <
+               exitDuration)
         {
-            elapsed += Time.unscaledDeltaTime;
-            float t = Mathf.Clamp01(elapsed / exitDuration);
-            text.alpha = 1f - t;
-            text.rectTransform.localScale = Vector3.one * Mathf.Lerp(1f, 0.94f, t);
+            elapsed +=
+                Time.unscaledDeltaTime;
+
+            float t =
+                Mathf.Clamp01(
+                    elapsed /
+                    exitDuration);
+
+            text.alpha =
+                1f - t;
+
+            text.rectTransform.localScale =
+                Vector3.one *
+                Mathf.Lerp(
+                    1f,
+                    0.97f,
+                    t);
+
             yield return null;
         }
 
-        text.alpha = 0f;
-        text.gameObject.SetActive(false);
-        text.rectTransform.localScale = Vector3.one;
-        ricochetRoutine = null;
+        text.alpha =
+            0f;
+        text.rectTransform.localScale =
+            Vector3.one;
+
+        // The compact card + four-stage meter remain visible until the shot
+        // resolves. This communicates the banked style value without placing
+        // text over Update A's final-shot cinematic.
+        ricochetRoutine =
+            null;
+    }
+
+    private Color GetRicochetTierColor(
+        int tier)
+    {
+        return tier switch
+        {
+            1 => new Color(0.56f, 0.95f, 1f, 1f),
+            2 => config.YellowColor,
+            3 => new Color(1f, 0.62f, 0.07f, 1f),
+            _ => new Color(1f, 0.96f, 0.62f, 1f)
+        };
     }
 
     public void PlayMissFeedback(int shotsRemaining)
@@ -326,19 +665,20 @@ public sealed class GameUIController : MonoBehaviour
         int shotsUsed,
         int maxShots,
         int score,
+        int targetScore,
+        int styleBonus,
         string hitLabel,
         bool isBullseye,
         bool isLastLevel,
-        int ricochetCount = 0)
+        int ricochetCount = 0,
+        int uniqueMirrorCount = 0)
     {
         view.ResultPrimaryButton.onClick.RemoveAllListeners();
         view.ResultPrimaryButton.onClick.AddListener(() => { PlayUIClick(); levelManager?.OnResultPrimaryClicked(); });
         view.ResultReplayButton.onClick.RemoveAllListeners();
         view.ResultReplayButton.onClick.AddListener(() => { PlayUIClick(); levelManager?.RetryLevel(); });
         StopOverlayCoroutine(ref resultRoutine);
-        StopOverlayCoroutine(ref ricochetRoutine);
-        if (view.RicochetText != null)
-            view.RicochetText.gameObject.SetActive(false);
+        ResetRicochetCombo();
 
         int stars = CalculateStars(shotsUsed, maxShots);
 
@@ -353,19 +693,52 @@ public sealed class GameUIController : MonoBehaviour
         view.ResultTitle.color =
             isBullseye
                 ? config.YellowColor
-                : config.LimeColor;
+                : ricochetCount >= 2
+                    ? GetRicochetTierColor(
+                        Mathf.Clamp(
+                            ricochetCount,
+                            1,
+                            4))
+                    : config.LimeColor;
 
         SetResultStars(stars);
         view.ResultStarsContainer.gameObject.SetActive(true);
         view.ResultStarsMessage.gameObject.SetActive(false);
-        string shotWord = shotsUsed == 1 ? "SHOT" : "SHOTS";
-        string ricochetInfo = ricochetCount > 0
-            ? $"  •  {ricochetCount} RICOCHET{(ricochetCount == 1 ? string.Empty : "S")}" 
-            : string.Empty;
+        string shotWord =
+            shotsUsed == 1
+                ? "SHOT"
+                : "SHOTS";
+
+        string ricochetLabel =
+            ricochetCount > 0
+                ? $"{ricochetCount} RICOCHET{(ricochetCount == 1 ? string.Empty : "S")}"
+                : string.Empty;
+
+        string mirrorLabel =
+            uniqueMirrorCount > 0
+                ? $"{uniqueMirrorCount} UNIQUE MIRROR{(uniqueMirrorCount == 1 ? string.Empty : "S")}"
+                : string.Empty;
+
+        string scoreBreakdown =
+            styleBonus > 0
+                ? $"TARGET  {targetScore:N0}  •  STYLE +{styleBonus:N0}"
+                : $"TARGET  {targetScore:N0}";
+
+        string masteryLine =
+            !string.IsNullOrEmpty(mirrorLabel) &&
+            !string.IsNullOrEmpty(ricochetLabel)
+                ? $"{mirrorLabel}  •  {ricochetLabel}"
+                : !string.IsNullOrEmpty(mirrorLabel)
+                    ? mirrorLabel
+                    : ricochetLabel;
+
+        string shotLine =
+            $"{shotsUsed} {shotWord} USED";
 
         view.ResultInfo.text =
             $"SCORE  {score:N0}\n" +
-            $"{shotsUsed} {shotWord} USED{ricochetInfo}";
+            $"{scoreBreakdown}\n" +
+            $"{(string.IsNullOrEmpty(masteryLine) ? shotLine : masteryLine + "  •  " + shotLine)}";
         view.ResultPrimaryButtonText.text = isLastLevel ? "PLAY AGAIN  >>" : "NEXT LEVEL  >>";
         view.ResultReplayButton.gameObject.SetActive(!isLastLevel);
 
@@ -387,6 +760,8 @@ public sealed class GameUIController : MonoBehaviour
             shotsUsed,
             maxShots,
             0,
+            0,
+            0,
             "TARGET HIT!",
             false,
             isLastLevel);
@@ -402,14 +777,50 @@ public sealed class GameUIController : MonoBehaviour
         if (isLastLevel)
             return "ALL LEVELS COMPLETE!";
 
-        if (isBullseye && shotsUsed <= 1)
-            return "PERFECT BULLSEYE!";
+        if (isBullseye &&
+            ricochetCount >= 4)
+        {
+            return "MASTER BULLSEYE!";
+        }
 
-        if (ricochetCount >= 2 && shotsUsed <= 1)
+        if (isBullseye &&
+            ricochetCount >= 3)
+        {
+            return "TRICK SHOT BULLSEYE!";
+        }
+
+        if (isBullseye &&
+            ricochetCount == 2)
+        {
+            return "DOUBLE RICOCHET BULLSEYE!";
+        }
+
+        if (isBullseye &&
+            ricochetCount == 1)
+        {
+            return "RICOCHET BULLSEYE!";
+        }
+
+        if (isBullseye &&
+            shotsUsed <= 1)
+        {
+            return "PERFECT BULLSEYE!";
+        }
+
+        if (ricochetCount >= 4)
+            return "MASTER SHOT!";
+
+        if (ricochetCount >= 3)
             return "TRICK SHOT!";
 
-        if (ricochetCount == 1 && shotsUsed <= 1)
+        if (ricochetCount == 2)
+            return "DOUBLE RICOCHET!";
+
+        if (ricochetCount == 1 &&
+            shotsUsed <= 1)
+        {
             return "PERFECT RICOCHET!";
+        }
 
         if (shotsUsed <= 1)
             return "ONE SHOT!";
@@ -471,9 +882,7 @@ public sealed class GameUIController : MonoBehaviour
     public void ShowFailed()
     {
         StopOverlayCoroutine(ref resultRoutine);
-        StopOverlayCoroutine(ref ricochetRoutine);
-        if (view.RicochetText != null)
-            view.RicochetText.gameObject.SetActive(false);
+        ResetRicochetCombo();
         view.ResultTitle.text = "MISS!";
         view.ResultTitle.color = config.PinkColor;
         view.ResultStarsContainer.gameObject.SetActive(false);
@@ -699,7 +1108,16 @@ public sealed class GameUIController : MonoBehaviour
         view.ScreenFlash.gameObject.SetActive(false);
         view.FeedbackText.gameObject.SetActive(false);
         if (view.RicochetText != null)
-            view.RicochetText.gameObject.SetActive(false);
+        {
+            view.RicochetText.alpha = 0f;
+            view.RicochetText.gameObject.SetActive(true);
+        }
+
+        if (view.RicochetBackdrop != null)
+            view.RicochetBackdrop.gameObject.SetActive(false);
+
+        if (view.RicochetComboTrack != null)
+            view.RicochetComboTrack.gameObject.SetActive(false);
     }
 
     private static void HideCanvasGroupImmediate(CanvasGroup group)

@@ -37,6 +37,7 @@ public sealed class ArrowController : MonoBehaviour
 
     private int lastMirrorInstanceId = int.MinValue;
     private float lastMirrorReflectionTime = -999f;
+    private int ricochetChainCount;
 
     // Reused reflection query buffer: avoids allocating RaycastHit2D[] on
     // every ricochet, which helps keep mobile frame times predictable.
@@ -53,7 +54,7 @@ public sealed class ArrowController : MonoBehaviour
         RigidbodyInterpolation2D.Interpolate;
 
     public event Action Shot;
-    public event Action Reflected;
+    public event Action<int, Collider2D, Vector2> Reflected;
     public event Action SolidCollision;
     public event Action Missed;
 
@@ -353,9 +354,27 @@ public sealed class ArrowController : MonoBehaviour
                 Time.time;
         }
 
-        // Presentation systems (audio/VFX) can react without Mirror depending
-        // directly on them. Fired once per successful ricochet.
-        Reflected?.Invoke();
+        ricochetChainCount++;
+
+        // Mirror presentation follows the real per-arrow chain count so the
+        // first/second/third/fourth bounce can escalate consistently even
+        // outside LevelManager-driven scenes.
+        if (sourceMirror != null)
+        {
+            Mirror mirror =
+                sourceMirror.GetComponentInParent<Mirror>();
+
+            mirror?.PlayRicochetPulse(
+                ricochetChainCount);
+        }
+
+        // Fired once per successful ricochet. The mirror reference enables
+        // anti-farming (unique mirror scoring); contactPoint enables localized
+        // sparks without changing reflection physics.
+        Reflected?.Invoke(
+            ricochetChainCount,
+            sourceMirror,
+            contactPoint);
 
         return true;
     }
@@ -1069,6 +1088,8 @@ public sealed class ArrowController : MonoBehaviour
 
         lastMirrorReflectionTime =
             -999f;
+
+        ricochetChainCount = 0;
 
         rb.bodyType =
             RigidbodyType2D.Kinematic;

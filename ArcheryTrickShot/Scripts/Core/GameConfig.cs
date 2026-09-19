@@ -58,6 +58,36 @@ public sealed class GameConfig : ScriptableObject
     [Range(1f, 1.15f)] public float MirrorPulseScale = 1.055f;
     [Min(0.05f)] public float MirrorPulseDuration = 0.12f;
 
+    [Header("Ricochet Combo Fever")]
+    [Tooltip("Style bonus awarded on a successful shot after touching 1 unique mirror.")]
+    [Min(0)] public int RicochetStyleBonus1 = 50;
+
+    [Tooltip("Style bonus awarded on a successful shot after touching 2 unique mirrors.")]
+    [Min(0)] public int RicochetStyleBonus2 = 125;
+
+    [Tooltip("Style bonus awarded on a successful shot after touching 3 unique mirrors.")]
+    [Min(0)] public int RicochetStyleBonus3 = 250;
+
+    [Tooltip("Maximum style bonus awarded after touching 4 or more unique mirrors.")]
+    [Min(0)] public int RicochetStyleBonus4 = 400;
+
+    [Tooltip(
+        "Only unique mirrors increase the style score. Re-bouncing off the same mirror " +
+        "still advances combo feedback but cannot farm score.")]
+    [Range(1, 8)] public int RicochetMaxRewardedUniqueMirrors = 4;
+
+    [Tooltip("Extra ricochet SFX pitch added per combo tier.")]
+    [Range(0f, 0.15f)] public float RicochetAudioPitchStep = 0.075f;
+
+    [Tooltip("Extra ricochet SFX volume added per combo tier.")]
+    [Range(0f, 0.20f)] public float RicochetAudioVolumeStep = 0.075f;
+
+    [Tooltip("Camera-shake growth per ricochet combo tier. Kept deliberately restrained.")]
+    [Range(0f, 0.35f)] public float RicochetShakeGrowthPerTier = 0.18f;
+
+    [Tooltip("How long the ricochet combo meter stays visible after each bounce.")]
+    [Range(0.15f, 0.80f)] public float RicochetComboUiHoldDuration = 0.30f;
+
     [Header("Final Shot Cinematic")]
     [Tooltip(
         "Only starts when the fired arrow's nearest upcoming collision is a valid target scoring face. " +
@@ -258,6 +288,15 @@ public sealed class GameConfig : ScriptableObject
         HitCameraZoomFactor = Mathf.Clamp(HitCameraZoomFactor, 0.95f, 1f);
         TargetHitPulseScale = Mathf.Max(1f, TargetHitPulseScale);
         MirrorPulseScale = Mathf.Max(1f, MirrorPulseScale);
+        RicochetStyleBonus1 = Mathf.Max(0, RicochetStyleBonus1);
+        RicochetStyleBonus2 = Mathf.Max(RicochetStyleBonus1, RicochetStyleBonus2);
+        RicochetStyleBonus3 = Mathf.Max(RicochetStyleBonus2, RicochetStyleBonus3);
+        RicochetStyleBonus4 = Mathf.Max(RicochetStyleBonus3, RicochetStyleBonus4);
+        RicochetMaxRewardedUniqueMirrors = Mathf.Clamp(RicochetMaxRewardedUniqueMirrors, 1, 8);
+        RicochetAudioPitchStep = Mathf.Clamp(RicochetAudioPitchStep, 0f, 0.15f);
+        RicochetAudioVolumeStep = Mathf.Clamp(RicochetAudioVolumeStep, 0f, 0.20f);
+        RicochetShakeGrowthPerTier = Mathf.Clamp(RicochetShakeGrowthPerTier, 0f, 0.35f);
+        RicochetComboUiHoldDuration = Mathf.Clamp(RicochetComboUiHoldDuration, 0.15f, 0.80f);
         FinalApproachTriggerDistance = Mathf.Max(0.5f, FinalApproachTriggerDistance);
         FinalApproachTimeScale = Mathf.Clamp(FinalApproachTimeScale, 0.30f, 1f);
         BullseyeApproachTimeScale = Mathf.Clamp(BullseyeApproachTimeScale, 0.25f, 1f);

@@ -48,6 +48,15 @@ MonoBehaviour:
   TargetHitPulseDuration: 0.22
   MirrorPulseScale: 1.055
   MirrorPulseDuration: 0.12
+  RicochetStyleBonus1: 50
+  RicochetStyleBonus2: 125
+  RicochetStyleBonus3: 250
+  RicochetStyleBonus4: 400
+  RicochetMaxRewardedUniqueMirrors: 4
+  RicochetAudioPitchStep: 0.075
+  RicochetAudioVolumeStep: 0.075
+  RicochetShakeGrowthPerTier: 0.18
+  RicochetComboUiHoldDuration: 0.3
   FinalShotCinematicEnabled: 1
   FinalApproachTriggerDistance: 2.85
   FinalApproachTimeScale: 0.68

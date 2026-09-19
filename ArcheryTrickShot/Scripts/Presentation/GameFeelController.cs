@@ -19,6 +19,7 @@ public sealed class GameFeelController : MonoBehaviour
     private Coroutine finalApproachRoutine;
     private Coroutine finalImpactRoutine;
     private Coroutine impactVfxRoutine;
+    private Coroutine ricochetVfxRoutine;
 
     private Vector3 baseLocalPosition;
     private Vector3 shakeLocalOffset;
@@ -35,6 +36,9 @@ public sealed class GameFeelController : MonoBehaviour
     private LineRenderer impactFlashRing;
     private LineRenderer shockwaveRing;
     private LineRenderer[] impactSparks;
+    private LineRenderer[] ricochetSparks;
+    private readonly Vector2[] ricochetSparkDirections =
+        new Vector2[7];
     private Material impactLineMaterial;
 
     public bool IsFinalShotCinematicActive =>
@@ -482,11 +486,36 @@ public sealed class GameFeelController : MonoBehaviour
         ownsTimeScale = false;
     }
 
-    public void PlayRicochetFeedback()
+    public void PlayRicochetFeedback(
+        int chainCount,
+        Vector2 contactPoint)
     {
+        int tier =
+            Mathf.Clamp(
+                chainCount,
+                1,
+                4);
+
+        float growth =
+            config != null
+                ? config.RicochetShakeGrowthPerTier
+                : 0.18f;
+
+        float magnitude =
+            config.RicochetShakeMagnitude *
+            (1f + (tier - 1) * growth);
+
+        float duration =
+            config.RicochetShakeDuration *
+            (1f + (tier - 1) * 0.08f);
+
         Shake(
-            config.RicochetShakeDuration,
-            config.RicochetShakeMagnitude);
+            duration,
+            magnitude);
+
+        PlayRicochetBurst(
+            contactPoint,
+            tier);
     }
 
     public void PlayMissFeedback()
@@ -710,6 +739,48 @@ public sealed class GameFeelController : MonoBehaviour
                 impactSparks[i] = spark;
             }
         }
+
+        const int ricochetSparkCount = 7;
+
+        if (ricochetSparks == null ||
+            ricochetSparks.Length != ricochetSparkCount)
+        {
+            ricochetSparks =
+                new LineRenderer[ricochetSparkCount];
+
+            for (int i = 0; i < ricochetSparkCount; i++)
+            {
+                GameObject sparkObject =
+                    new GameObject(
+                        $"RicochetComboSpark_{i:00}");
+
+                sparkObject.transform.SetParent(
+                    transform,
+                    false);
+
+                LineRenderer spark =
+                    sparkObject.AddComponent<LineRenderer>();
+
+                spark.useWorldSpace = true;
+                spark.positionCount = 2;
+                spark.numCornerVertices = 2;
+                spark.numCapVertices = 2;
+                spark.textureMode = LineTextureMode.Stretch;
+                spark.sortingOrder = 150;
+                spark.shadowCastingMode =
+                    UnityEngine.Rendering.ShadowCastingMode.Off;
+                spark.receiveShadows = false;
+                spark.enabled = false;
+
+                if (impactLineMaterial != null)
+                {
+                    spark.sharedMaterial =
+                        impactLineMaterial;
+                }
+
+                ricochetSparks[i] = spark;
+            }
+        }
     }
 
     private LineRenderer CreateCircleRenderer(
@@ -741,6 +812,210 @@ public sealed class GameFeelController : MonoBehaviour
             ring.sharedMaterial = impactLineMaterial;
 
         return ring;
+    }
+
+    private void PlayRicochetBurst(
+        Vector2 worldPoint,
+        int tier)
+    {
+        EnsureImpactVfx();
+
+        if (ricochetVfxRoutine != null)
+        {
+            StopCoroutine(
+                ricochetVfxRoutine);
+            DisableRicochetVfx();
+        }
+
+        ricochetVfxRoutine =
+            StartCoroutine(
+                RicochetVfxRoutine(
+                    worldPoint,
+                    Mathf.Clamp(
+                        tier,
+                        1,
+                        4)));
+    }
+
+    private IEnumerator RicochetVfxRoutine(
+        Vector2 worldPoint,
+        int tier)
+    {
+        if (ricochetSparks == null ||
+            ricochetSparks.Length == 0)
+        {
+            ricochetVfxRoutine = null;
+            yield break;
+        }
+
+        int sparkCount =
+            Mathf.Min(
+                3 + tier,
+                ricochetSparks.Length);
+
+        float duration =
+            0.095f +
+            (tier - 1) * 0.018f;
+
+        float travelDistance =
+            0.12f +
+            (tier - 1) * 0.035f;
+
+        float sparkLength =
+            0.07f +
+            (tier - 1) * 0.018f;
+
+        Color tierColor = tier switch
+        {
+            1 => new Color(0.58f, 0.96f, 1f, 1f),
+            2 => config.YellowColor,
+            3 => new Color(1f, 0.64f, 0.08f, 1f),
+            _ => new Color(1f, 0.96f, 0.62f, 1f)
+        };
+
+        for (int i = 0;
+             i < sparkCount;
+             i++)
+        {
+            float angle =
+                (Mathf.PI * 2f * i) /
+                Mathf.Max(
+                    1,
+                    sparkCount);
+
+            angle +=
+                Random.Range(
+                    -0.16f,
+                    0.16f);
+
+            ricochetSparkDirections[i] =
+                new Vector2(
+                    Mathf.Cos(angle),
+                    Mathf.Sin(angle));
+
+            if (ricochetSparks[i] != null)
+                ricochetSparks[i].enabled = true;
+        }
+
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed +=
+                Time.unscaledDeltaTime;
+
+            float t =
+                Mathf.Clamp01(
+                    elapsed /
+                    duration);
+
+            float eased =
+                EaseOutCubic(t);
+
+            for (int i = 0;
+                 i < sparkCount;
+                 i++)
+            {
+                LineRenderer spark =
+                    ricochetSparks[i];
+
+                if (spark == null)
+                    continue;
+
+                Vector2 direction =
+                    ricochetSparkDirections[i];
+
+                Vector2 head =
+                    worldPoint +
+                    direction *
+                    travelDistance *
+                    eased;
+
+                Vector2 tail =
+                    head -
+                    direction *
+                    sparkLength *
+                    Mathf.Lerp(
+                        0.55f,
+                        1f,
+                        Mathf.Clamp01(
+                            t * 2.8f));
+
+                float alpha =
+                    (1f - t) *
+                    Mathf.Lerp(
+                        0.68f,
+                        1f,
+                        (tier - 1) / 3f);
+
+                Color headColor =
+                    Color.Lerp(
+                        Color.white,
+                        tierColor,
+                        0.50f);
+
+                headColor.a =
+                    alpha;
+
+                Color tailColor =
+                    tierColor;
+
+                tailColor.a =
+                    alpha * 0.10f;
+
+                float width =
+                    Mathf.Lerp(
+                        0.020f +
+                        (tier - 1) * 0.003f,
+                        0.003f,
+                        t);
+
+                spark.startColor =
+                    headColor;
+
+                spark.endColor =
+                    tailColor;
+
+                spark.startWidth =
+                    width;
+
+                spark.endWidth =
+                    width * 0.35f;
+
+                spark.SetPosition(
+                    0,
+                    new Vector3(
+                        head.x,
+                        head.y,
+                        0f));
+
+                spark.SetPosition(
+                    1,
+                    new Vector3(
+                        tail.x,
+                        tail.y,
+                        0f));
+            }
+
+            yield return null;
+        }
+
+        DisableRicochetVfx();
+        ricochetVfxRoutine = null;
+    }
+
+    private void DisableRicochetVfx()
+    {
+        if (ricochetSparks == null)
+            return;
+
+        for (int i = 0;
+             i < ricochetSparks.Length;
+             i++)
+        {
+            if (ricochetSparks[i] != null)
+                ricochetSparks[i].enabled = false;
+        }
     }
 
     private void PlayImpactBurst(
@@ -1095,6 +1370,9 @@ public sealed class GameFeelController : MonoBehaviour
         if (impactVfxRoutine != null)
             StopCoroutine(impactVfxRoutine);
 
+        if (ricochetVfxRoutine != null)
+            StopCoroutine(ricochetVfxRoutine);
+
         if (ownsTimeScale || finalShotCinematicActive)
             Time.timeScale = 1f;
 
@@ -1111,12 +1389,14 @@ public sealed class GameFeelController : MonoBehaviour
         }
 
         DisableImpactVfx();
+        DisableRicochetVfx();
 
         shakeRoutine = null;
         zoomRoutine = null;
         finalApproachRoutine = null;
         finalImpactRoutine = null;
         impactVfxRoutine = null;
+        ricochetVfxRoutine = null;
         finalShotCinematicActive = false;
         ownsTimeScale = false;
     }

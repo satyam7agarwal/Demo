@@ -10,6 +10,16 @@ public sealed class LevelData : ScriptableObject
     [FormerlySerializedAs("BowPosition")]
     public Vector2 ArcherPosition = new Vector2(-5f, -2f);
 
+    [Header("Ricochet Mastery")]
+    [Tooltip(
+        "Maximum UNIQUE mirrors that are intentionally rewardable in this level. " +
+        "0 = automatically use the number of Mirror objects in Objects. " +
+        "Use an explicit value when a level contains decorative, optional, or " +
+        "otherwise unreachable mirrors. The runtime also respects the global " +
+        "ricochet reward cap from GameConfig.")]
+    [Min(0)]
+    public int MaxRewardedRicochetMirrors = 0;
+
     public LevelObjectData[] Objects = new LevelObjectData[0];
 
     public enum ObjectType
