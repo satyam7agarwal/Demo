@@ -40,6 +40,14 @@ public sealed class LevelManager : MonoBehaviour
     private bool fullTrajectoryPreviewEnabled;
     private int currentShotRicochets;
 
+    private const int FinalApproachRaycastBufferSize = 24;
+    private readonly RaycastHit2D[] finalApproachRaycastHits =
+        new RaycastHit2D[FinalApproachRaycastBufferSize];
+    private bool finalApproachActive;
+    private bool finalApproachWasTrickShot;
+    private bool finalApproachPredictedBullseye;
+    private Vector2 finalApproachPredictedImpactPoint;
+
     public int CurrentLevelScore => currentLevelScore;
 
     private Transform levelObjectsParent;
@@ -62,6 +70,138 @@ public sealed class LevelManager : MonoBehaviour
         currentLevelIndex = 0;
         frontend = ATSFrontendController.Ensure(this, config, bow, gameUI);
         OpenMainMenu();
+    }
+
+    private void Update()
+    {
+        if (currentState != LevelState.Playing ||
+            finalApproachActive)
+        {
+            return;
+        }
+
+        TryBeginFinalApproach();
+    }
+
+    private void TryBeginFinalApproach()
+    {
+        if (config == null ||
+            !config.FinalShotCinematicEnabled ||
+            currentArrow == null ||
+            !currentArrow.HasFired ||
+            currentArrow.IsStopped)
+        {
+            return;
+        }
+
+        Vector2 velocity = currentArrow.GetVelocity();
+        if (velocity.sqrMagnitude < 0.0001f)
+            return;
+
+        Vector2 direction = velocity.normalized;
+        Vector2 origin =
+            currentArrow.GetVisualTipWorldPosition(direction) +
+            direction * 0.01f;
+
+        ContactFilter2D filter = new ContactFilter2D();
+        filter.useTriggers = true;
+        filter.useLayerMask = false;
+        filter.useDepth = false;
+        filter.useNormalAngle = false;
+
+        int hitCount = Physics2D.Raycast(
+            origin,
+            direction,
+            filter,
+            finalApproachRaycastHits,
+            config.FinalApproachTriggerDistance);
+
+        Collider2D nearestCollider = null;
+        Vector2 nearestPoint = default;
+        float nearestDistance = float.PositiveInfinity;
+
+        for (int i = 0; i < hitCount; i++)
+        {
+            RaycastHit2D hit = finalApproachRaycastHits[i];
+            Collider2D hitCollider = hit.collider;
+
+            if (hitCollider == null)
+                continue;
+
+            if (hitCollider.GetComponentInParent<ArrowController>() ==
+                currentArrow)
+            {
+                continue;
+            }
+
+            if (hit.distance >= nearestDistance)
+                continue;
+
+            nearestDistance = hit.distance;
+            nearestCollider = hitCollider;
+            nearestPoint = hit.point;
+        }
+
+        if (nearestCollider == null)
+            return;
+
+        TargetContactSensor sensor =
+            nearestCollider.GetComponent<TargetContactSensor>();
+
+        if (sensor == null ||
+            sensor.Kind != TargetContactKind.ScoringFace)
+        {
+            // A mirror, wall or physical target part is still ahead.
+            return;
+        }
+
+        Target target =
+            sensor.GetComponentInParent<Target>();
+
+        if (target == null ||
+            !target.CanScoreApproach(direction))
+        {
+            return;
+        }
+
+        TargetHitZone predictedZone =
+            target.PreviewHitZone(nearestPoint);
+
+        if (predictedZone == TargetHitZone.Invalid)
+            return;
+
+        finalApproachActive = true;
+        finalApproachWasTrickShot =
+            currentShotRicochets > 0;
+        finalApproachPredictedBullseye =
+            predictedZone == TargetHitZone.Bullseye;
+        finalApproachPredictedImpactPoint =
+            nearestPoint;
+
+        currentArrow.SetCinematicTrail(true);
+
+        audioController?.BeginFinalApproach(
+            finalApproachWasTrickShot,
+            finalApproachPredictedBullseye);
+
+        gameFeel?.BeginFinalApproach(
+            finalApproachPredictedImpactPoint,
+            finalApproachWasTrickShot,
+            finalApproachPredictedBullseye);
+    }
+
+    private void CancelFinalApproach()
+    {
+        if (currentArrow != null)
+            currentArrow.SetCinematicTrail(false);
+
+        finalApproachActive = false;
+        finalApproachWasTrickShot = false;
+        finalApproachPredictedBullseye = false;
+        finalApproachPredictedImpactPoint = default;
+
+        gameFeel?.CancelFinalShotCinematic();
+        audioController?.CancelTransientDuck();
     }
 
     private bool ResolveDependencies()
@@ -176,6 +316,12 @@ public sealed class LevelManager : MonoBehaviour
         if (bow != null)
             bow.gameObject.SetActive(true);
         gameUI?.SetGameplayVisible(true);
+        gameFeel?.CancelFinalShotCinematic();
+        audioController?.CancelTransientDuck();
+        finalApproachActive = false;
+        finalApproachWasTrickShot = false;
+        finalApproachPredictedBullseye = false;
+        finalApproachPredictedImpactPoint = default;
         Time.timeScale = 1f;
         StopResolutionRoutine();
         ClearPreviousLevel();
@@ -334,6 +480,10 @@ public sealed class LevelManager : MonoBehaviour
             return;
 
         currentShotRicochets = 0;
+        finalApproachActive = false;
+        finalApproachWasTrickShot = false;
+        finalApproachPredictedBullseye = false;
+        finalApproachPredictedImpactPoint = default;
         shotsUsed++;
         int remaining = Mathf.Max(0, currentLevel.MaxShots - shotsUsed);
         gameUI.UpdateShots(remaining, currentLevel.MaxShots, true);
@@ -353,7 +503,8 @@ public sealed class LevelManager : MonoBehaviour
         gameUI.PlayHitFeedback(
             result.Label,
             result.Score,
-            result.IsBullseye);
+            result.IsBullseye,
+            finalApproachActive);
 
         Debug.Log(
             $"{result.Label} +{result.Score} " +
@@ -368,6 +519,7 @@ public sealed class LevelManager : MonoBehaviour
         // The arrow did contact the target, but not its valid scoring face
         // (for example rim/back/underside). Consume the shot as a miss while
         // using the target-impact sound rather than the wall-impact sound.
+        CancelFinalApproach();
         audioController?.PlayTargetHit();
         ResolveFailedShot(false);
     }
@@ -377,22 +529,74 @@ public sealed class LevelManager : MonoBehaviour
         if (currentState != LevelState.Playing)
             return;
 
+        // IMPORTANT: capture cinematic state BEFORE clearing it. The first
+        // Update-A version cancelled here too early, which bypassed the strong
+        // impact path even though the approach slow-motion had started.
+        bool cinematicHit = finalApproachActive;
+        bool trickShot = finalApproachWasTrickShot;
+        bool isBullseye = lastTargetHitResult.IsBullseye;
+        Vector2 impactPoint = lastTargetHitResult.WorldPoint;
+
         currentState = LevelState.ResolvingShot;
         bow.SetInputEnabled(false);
         currentArrow?.Stop();
 
-        audioController?.PlayTargetHit();
+        // Do not call CancelFinalApproach here. GameFeel must transition the
+        // active approach directly into hit-stop / impact focus.
+        finalApproachActive = false;
+        finalApproachWasTrickShot = false;
+        finalApproachPredictedBullseye = false;
+        finalApproachPredictedImpactPoint = default;
+
+        audioController?.PlayTargetHit(
+            cinematicHit,
+            isBullseye);
+
         ATSHaptics.Pulse();
-        gameFeel?.PlayHitFeedback(
-            lastTargetHitResult.IsBullseye);
+
+        if (cinematicHit)
+        {
+            gameFeel?.PlayFinalImpact(
+                isBullseye,
+                impactPoint,
+                trickShot);
+        }
+        else
+        {
+            gameFeel?.PlayHitFeedback(isBullseye);
+        }
 
         StopResolutionRoutine();
-        resolutionRoutine = StartCoroutine(CompleteLevelSequence());
+        resolutionRoutine = StartCoroutine(
+            CompleteLevelSequence(
+                cinematicHit,
+                trickShot,
+                isBullseye));
     }
 
-    private IEnumerator CompleteLevelSequence()
+    private IEnumerator CompleteLevelSequence(
+        bool cinematicHit,
+        bool trickShot,
+        bool isBullseye)
     {
-        yield return new WaitForSecondsRealtime(config.HitResultDelay);
+        float resultDelay = config.HitResultDelay;
+
+        if (cinematicHit)
+        {
+            if (isBullseye && trickShot)
+                resultDelay = config.CinematicBullseyeTrickShotResultDelay;
+            else if (isBullseye)
+                resultDelay = config.CinematicBullseyeResultDelay;
+            else if (trickShot)
+                resultDelay = config.CinematicTrickShotResultDelay;
+            else
+                resultDelay = config.CinematicHitResultDelay;
+        }
+
+        // Keep the arrow visibly embedded while the impact VFX and camera
+        // settle. The result card appears only after the shot has had time to
+        // register visually.
+        yield return new WaitForSecondsRealtime(resultDelay);
 
         DestroyCurrentArrow();
         currentState = LevelState.Completed;
@@ -416,7 +620,7 @@ public sealed class LevelManager : MonoBehaviour
             currentLevel.MaxShots,
             currentLevelScore,
             hitLabel,
-            lastTargetHitResult.IsBullseye,
+            isBullseye,
             isLastLevel,
             currentShotRicochets);
 
@@ -428,6 +632,11 @@ public sealed class LevelManager : MonoBehaviour
     {
         if (currentState != LevelState.Playing)
             return;
+
+        // Defensive reset: if a future moving object enters the predicted final
+        // segment, a reflection must immediately return gameplay to normal speed.
+        if (finalApproachActive)
+            CancelFinalApproach();
 
         currentShotRicochets++;
         ATSHaptics.Pulse();
@@ -453,6 +662,7 @@ public sealed class LevelManager : MonoBehaviour
         if (currentState != LevelState.Playing)
             return;
 
+        CancelFinalApproach();
         currentState = LevelState.ResolvingShot;
         bow.SetInputEnabled(false);
         currentArrow?.Stop();
@@ -543,6 +753,7 @@ public sealed class LevelManager : MonoBehaviour
 
     private void PrepareForFrontend()
     {
+        CancelFinalApproach();
         Time.timeScale = 1f;
         StopResolutionRoutine();
         ClearPreviousLevel();
@@ -583,6 +794,7 @@ public sealed class LevelManager : MonoBehaviour
         if (currentState != LevelState.Playing)
             return;
 
+        CancelFinalApproach();
         stateBeforePause = currentState;
         currentState = LevelState.Paused;
         bow.SetInputEnabled(false);
@@ -710,6 +922,7 @@ public sealed class LevelManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        CancelFinalApproach();
         Time.timeScale = 1f;
         StopResolutionRoutine();
         ClearPreviousLevel();

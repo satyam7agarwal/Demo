@@ -18,7 +18,19 @@ public sealed class ArrowController : MonoBehaviour
     private SpriteRenderer arrowSpriteRenderer;
     private Collider2D arrowCollider;
     private TrailRenderer trailRenderer;
+    private TrailRenderer cinematicCoreTrail;
+    private LineRenderer cinematicContrastLine;
+    private LineRenderer cinematicOuterLine;
+    private LineRenderer cinematicCoreLine;
+    private SpriteRenderer cinematicArrowGlow;
     private static Material sharedTrailMaterial;
+    private GameConfig config;
+    private float baseTrailTime;
+    private float baseTrailWidth;
+    private float baseTrailStartAlpha;
+    private int baseArrowSortingOrder;
+    private bool baseArrowSortingOrderCaptured;
+    private bool cinematicTrailActive;
 
     private bool fired;
     private bool stopped;
@@ -56,15 +68,23 @@ public sealed class ArrowController : MonoBehaviour
         arrowSpriteRenderer =
             GetComponentInChildren<SpriteRenderer>(true);
 
+        CaptureBaseArrowSortingOrder();
+
         mainCamera = Camera.main;
+        config = GameConfig.Load();
         ApplyPhysicsDefaults();
-        EnsureTrail(GameConfig.Load());
+        EnsureTrail(config);
     }
 
     public void Configure(GameConfig config)
     {
         if (config == null)
             return;
+
+        this.config = config;
+
+        if (!cinematicTrailActive)
+            CaptureBaseArrowSortingOrder();
 
         speed = config.ArrowSpeed;
         outOfBoundsMargin = config.ArrowOutOfBoundsMargin;
@@ -348,6 +368,11 @@ public sealed class ArrowController : MonoBehaviour
         CheckOutOfBounds();
     }
 
+    private void LateUpdate()
+    {
+        UpdateSmoothCinematicComet();
+    }
+
     private void OnCollisionEnter2D(
         Collision2D collision)
     {
@@ -577,6 +602,118 @@ public sealed class ArrowController : MonoBehaviour
         }
 
         return bestWorldPoint;
+    }
+
+    private Vector2 GetVisualTailWorldPosition(
+        Vector2 travelDirection)
+    {
+        if (arrowSpriteRenderer == null ||
+            arrowSpriteRenderer.sprite == null)
+        {
+            return GetColliderTailFallback(
+                travelDirection);
+        }
+
+        Vector2 direction =
+            travelDirection.sqrMagnitude >
+            DirectionEpsilon
+                ? travelDirection.normalized
+                : Vector2.right;
+
+        Vector2[] vertices =
+            arrowSpriteRenderer.sprite.vertices;
+
+        if (vertices == null ||
+            vertices.Length == 0)
+        {
+            return GetColliderTailFallback(
+                direction);
+        }
+
+        bool flipX =
+            arrowSpriteRenderer.flipX;
+
+        bool flipY =
+            arrowSpriteRenderer.flipY;
+
+        float smallestProjection =
+            float.PositiveInfinity;
+
+        Vector2 bestWorldPoint =
+            transform.position;
+
+        Transform spriteTransform =
+            arrowSpriteRenderer.transform;
+
+        for (int i = 0;
+             i < vertices.Length;
+             i++)
+        {
+            Vector3 localVertex =
+                vertices[i];
+
+            if (flipX)
+                localVertex.x =
+                    -localVertex.x;
+
+            if (flipY)
+                localVertex.y =
+                    -localVertex.y;
+
+            Vector3 worldVertex =
+                spriteTransform.TransformPoint(
+                    localVertex);
+
+            float projection =
+                Vector2.Dot(
+                    (Vector2)worldVertex,
+                    direction);
+
+            if (projection >=
+                smallestProjection)
+            {
+                continue;
+            }
+
+            smallestProjection =
+                projection;
+
+            bestWorldPoint =
+                worldVertex;
+        }
+
+        return bestWorldPoint;
+    }
+
+    private Vector2 GetColliderTailFallback(
+        Vector2 travelDirection)
+    {
+        Vector2 direction =
+            travelDirection.sqrMagnitude >
+            DirectionEpsilon
+                ? travelDirection.normalized
+                : Vector2.right;
+
+        if (arrowCollider == null)
+        {
+            return
+                (Vector2)transform.position -
+                direction * 0.5f;
+        }
+
+        Bounds bounds =
+            arrowCollider.bounds;
+
+        float supportDistance =
+            Mathf.Abs(direction.x) *
+                bounds.extents.x +
+            Mathf.Abs(direction.y) *
+                bounds.extents.y;
+
+        return
+            (Vector2)bounds.center -
+            direction *
+            supportDistance;
     }
 
     private Vector2 GetColliderTipFallback(
@@ -911,11 +1048,20 @@ public sealed class ArrowController : MonoBehaviour
 
         fired = false;
         stopped = false;
+        SetCinematicTrail(false);
+        ApplyCinematicSorting(false);
+        SetSmoothCinematicCometVisible(false);
 
         if (trailRenderer != null)
         {
             trailRenderer.emitting = false;
             trailRenderer.Clear();
+        }
+
+        if (cinematicCoreTrail != null)
+        {
+            cinematicCoreTrail.emitting = false;
+            cinematicCoreTrail.Clear();
         }
 
         lastMirrorInstanceId =
@@ -968,6 +1114,12 @@ public sealed class ArrowController : MonoBehaviour
 
     private void EnsureTrail(GameConfig gameConfig)
     {
+        config = gameConfig != null
+            ? gameConfig
+            : config != null
+                ? config
+                : GameConfig.Load();
+
         if (trailRenderer == null)
             trailRenderer = GetComponent<TrailRenderer>();
 
@@ -990,13 +1142,52 @@ public sealed class ArrowController : MonoBehaviour
         if (sharedTrailMaterial != null)
             trailRenderer.sharedMaterial = sharedTrailMaterial;
 
-        trailRenderer.time = gameConfig != null
-            ? gameConfig.ArrowTrailTime
+        if (cinematicCoreTrail == null)
+        {
+            Transform existingCore =
+                transform.Find("CinematicCoreTrail");
+
+            if (existingCore != null)
+            {
+                cinematicCoreTrail =
+                    existingCore.GetComponent<TrailRenderer>();
+            }
+
+            if (cinematicCoreTrail == null)
+            {
+                GameObject coreObject =
+                    new GameObject("CinematicCoreTrail");
+
+                coreObject.transform.SetParent(
+                    transform,
+                    false);
+
+                cinematicCoreTrail =
+                    coreObject.AddComponent<TrailRenderer>();
+            }
+        }
+
+        if (cinematicCoreTrail != null &&
+            sharedTrailMaterial != null)
+        {
+            cinematicCoreTrail.sharedMaterial =
+                sharedTrailMaterial;
+        }
+
+        EnsureCinematicArrowGlow();
+        EnsureSmoothCinematicComet();
+
+        baseTrailTime = config != null
+            ? config.ArrowTrailTime
             : 0.11f;
 
-        trailRenderer.widthMultiplier = gameConfig != null
-            ? gameConfig.ArrowTrailWidth
+        baseTrailWidth = config != null
+            ? config.ArrowTrailWidth
             : 0.028f;
+
+        baseTrailStartAlpha = config != null
+            ? config.ArrowTrailStartAlpha
+            : 0.55f;
 
         trailRenderer.minVertexDistance = 0.045f;
         trailRenderer.numCornerVertices = 2;
@@ -1013,19 +1204,680 @@ public sealed class ArrowController : MonoBehaviour
             trailRenderer.sortingLayerID =
                 arrowSpriteRenderer.sortingLayerID;
             trailRenderer.sortingOrder =
-                arrowSpriteRenderer.sortingOrder - 1;
+                arrowSpriteRenderer.sortingOrder - 3;
         }
 
-        float startAlpha = gameConfig != null
-            ? gameConfig.ArrowTrailStartAlpha
-            : 0.55f;
+        if (cinematicCoreTrail != null)
+        {
+            // Legacy cinematic TrailRenderer from the earlier Update A pass.
+            // Keep it disabled: the final winning segment now uses two
+            // continuous LineRenderers, eliminating visible frame segments.
+            cinematicCoreTrail.emitting = false;
+            cinematicCoreTrail.Clear();
+            cinematicCoreTrail.enabled = false;
+        }
+
+        cinematicTrailActive = false;
+        ApplyTrailStyle(false);
+        UpdateCinematicArrowGlow();
+    }
+
+    private void CaptureBaseArrowSortingOrder()
+    {
+        if (arrowSpriteRenderer == null)
+            return;
+
+        // Never capture the temporary cinematic +4 value as the new baseline.
+        if (cinematicTrailActive &&
+            baseArrowSortingOrderCaptured)
+        {
+            return;
+        }
+
+        baseArrowSortingOrder =
+            arrowSpriteRenderer.sortingOrder;
+
+        baseArrowSortingOrderCaptured =
+            true;
+    }
+
+    private void ApplyCinematicSorting(bool enabled)
+    {
+        if (arrowSpriteRenderer == null)
+            return;
+
+        if (!baseArrowSortingOrderCaptured)
+            CaptureBaseArrowSortingOrder();
+
+        int baseOrder =
+            baseArrowSortingOrder;
+
+        if (cinematicContrastLine != null)
+        {
+            cinematicContrastLine.sortingLayerID =
+                arrowSpriteRenderer.sortingLayerID;
+            cinematicContrastLine.sortingOrder =
+                baseOrder + 1;
+        }
+
+        if (cinematicOuterLine != null)
+        {
+            cinematicOuterLine.sortingLayerID =
+                arrowSpriteRenderer.sortingLayerID;
+            cinematicOuterLine.sortingOrder =
+                baseOrder + 2;
+        }
+
+        if (cinematicCoreLine != null)
+        {
+            cinematicCoreLine.sortingLayerID =
+                arrowSpriteRenderer.sortingLayerID;
+            cinematicCoreLine.sortingOrder =
+                baseOrder + 3;
+        }
+
+        if (cinematicArrowGlow != null)
+        {
+            cinematicArrowGlow.sortingLayerID =
+                arrowSpriteRenderer.sortingLayerID;
+            cinematicArrowGlow.sortingOrder =
+                baseOrder + 3;
+        }
+
+        // Arrow itself remains on top of all winning-shot VFX layers.
+        arrowSpriteRenderer.sortingOrder =
+            enabled
+                ? baseOrder + 4
+                : baseOrder;
+    }
+
+    private void EnsureSmoothCinematicComet()
+    {
+        cinematicContrastLine =
+            EnsureCinematicLine(
+                cinematicContrastLine,
+                "CinematicCometContrast",
+                1);
+
+        cinematicOuterLine =
+            EnsureCinematicLine(
+                cinematicOuterLine,
+                "CinematicCometOuter",
+                2);
+
+        cinematicCoreLine =
+            EnsureCinematicLine(
+                cinematicCoreLine,
+                "CinematicCometCore",
+                3);
+
+        ConfigureSmoothCinematicComet();
+        SetSmoothCinematicCometVisible(false);
+    }
+
+    private LineRenderer EnsureCinematicLine(
+        LineRenderer existing,
+        string objectName,
+        int sortingOffset)
+    {
+        if (existing == null)
+        {
+            Transform existingTransform =
+                transform.Find(objectName);
+
+            if (existingTransform != null)
+            {
+                existing =
+                    existingTransform.GetComponent<LineRenderer>();
+            }
+        }
+
+        if (existing == null)
+        {
+            GameObject lineObject =
+                new GameObject(objectName);
+
+            lineObject.transform.SetParent(
+                transform,
+                false);
+
+            existing =
+                lineObject.AddComponent<LineRenderer>();
+        }
+
+        if (sharedTrailMaterial != null)
+        {
+            existing.sharedMaterial =
+                sharedTrailMaterial;
+        }
+
+        existing.useWorldSpace = true;
+        existing.positionCount = 2;
+        existing.alignment = LineAlignment.View;
+        existing.textureMode = LineTextureMode.Stretch;
+        existing.numCornerVertices = 0;
+        existing.numCapVertices = 3;
+        existing.loop = false;
+        existing.shadowCastingMode =
+            UnityEngine.Rendering.ShadowCastingMode.Off;
+        existing.receiveShadows = false;
+        existing.enabled = false;
+
+        if (arrowSpriteRenderer != null)
+        {
+            CaptureBaseArrowSortingOrder();
+
+            existing.sortingLayerID =
+                arrowSpriteRenderer.sortingLayerID;
+
+            existing.sortingOrder =
+                baseArrowSortingOrder +
+                sortingOffset;
+        }
+
+        return existing;
+    }
+
+    private void ConfigureSmoothCinematicComet()
+    {
+        if (cinematicContrastLine != null)
+        {
+            float contrastWidthMultiplier =
+                config != null
+                    ? config.FinalApproachContrastTrailWidthMultiplier
+                    : 8.0f;
+
+            float contrastAlpha =
+                config != null
+                    ? config.FinalApproachContrastTrailAlpha
+                    : 0.30f;
+
+            cinematicContrastLine.widthMultiplier =
+                baseTrailWidth *
+                contrastWidthMultiplier;
+
+            cinematicContrastLine.widthCurve =
+                new AnimationCurve(
+                    new Keyframe(0f, 0.01f),
+                    new Keyframe(0.26f, 0.30f),
+                    new Keyframe(0.66f, 0.82f),
+                    new Keyframe(1f, 1f));
+
+            Gradient contrastGradient =
+                new Gradient();
+
+            contrastGradient.SetKeys(
+                new[]
+                {
+                    new GradientColorKey(
+                        new Color(0.10f, 0.035f, 0.008f),
+                        0f),
+                    new GradientColorKey(
+                        new Color(0.18f, 0.055f, 0.006f),
+                        0.58f),
+                    new GradientColorKey(
+                        new Color(0.24f, 0.075f, 0.008f),
+                        1f)
+                },
+                new[]
+                {
+                    new GradientAlphaKey(0f, 0f),
+                    new GradientAlphaKey(
+                        contrastAlpha * 0.34f,
+                        0.30f),
+                    new GradientAlphaKey(
+                        contrastAlpha * 0.80f,
+                        0.72f),
+                    new GradientAlphaKey(
+                        contrastAlpha,
+                        1f)
+                });
+
+            cinematicContrastLine.colorGradient =
+                contrastGradient;
+        }
+
+        if (cinematicOuterLine != null)
+        {
+            float outerWidthMultiplier =
+                config != null
+                    ? config.FinalApproachTrailWidthMultiplier
+                    : 2.65f;
+
+            cinematicOuterLine.widthMultiplier =
+                baseTrailWidth *
+                outerWidthMultiplier;
+
+            cinematicOuterLine.widthCurve =
+                new AnimationCurve(
+                    new Keyframe(0f, 0.01f),
+                    new Keyframe(0.25f, 0.28f),
+                    new Keyframe(0.65f, 0.76f),
+                    new Keyframe(1f, 1f));
+
+            float outerAlphaMultiplier =
+                config != null
+                    ? config.FinalApproachTrailAlphaMultiplier
+                    : 1.35f;
+
+            Gradient outerGradient =
+                new Gradient();
+
+            outerGradient.SetKeys(
+                new[]
+                {
+                    // Position 0 is the distant tail; position 1 meets arrow tail.
+                    new GradientColorKey(
+                        new Color(1f, 0.30f, 0.005f),
+                        0f),
+                    new GradientColorKey(
+                        new Color(1f, 0.64f, 0.015f),
+                        0.50f),
+                    new GradientColorKey(
+                        new Color(1f, 0.96f, 0.20f),
+                        1f)
+                },
+                new[]
+                {
+                    new GradientAlphaKey(0f, 0f),
+                    new GradientAlphaKey(
+                        Mathf.Clamp01(0.24f * outerAlphaMultiplier),
+                        0.26f),
+                    new GradientAlphaKey(
+                        Mathf.Clamp01(0.56f * outerAlphaMultiplier),
+                        0.68f),
+                    new GradientAlphaKey(
+                        Mathf.Clamp01(0.74f * outerAlphaMultiplier),
+                        1f)
+                });
+
+            cinematicOuterLine.colorGradient =
+                outerGradient;
+        }
+
+        if (cinematicCoreLine != null)
+        {
+            float coreWidthMultiplier =
+                config != null
+                    ? config.FinalApproachCoreTrailWidthMultiplier
+                    : 0.95f;
+
+            cinematicCoreLine.widthMultiplier =
+                baseTrailWidth *
+                coreWidthMultiplier;
+
+            cinematicCoreLine.widthCurve =
+                new AnimationCurve(
+                    new Keyframe(0f, 0.01f),
+                    new Keyframe(0.32f, 0.18f),
+                    new Keyframe(0.70f, 0.62f),
+                    new Keyframe(1f, 1f));
+
+            Gradient coreGradient =
+                new Gradient();
+
+            coreGradient.SetKeys(
+                new[]
+                {
+                    new GradientColorKey(
+                        new Color(1f, 0.70f, 0.05f),
+                        0f),
+                    new GradientColorKey(
+                        new Color(1f, 0.93f, 0.52f),
+                        0.55f),
+                    new GradientColorKey(
+                        new Color(1f, 0.99f, 0.92f),
+                        0.82f),
+                    new GradientColorKey(
+                        Color.white,
+                        1f)
+                },
+                new[]
+                {
+                    new GradientAlphaKey(0f, 0f),
+                    new GradientAlphaKey(0.36f, 0.32f),
+                    new GradientAlphaKey(0.88f, 0.72f),
+                    new GradientAlphaKey(1f, 1f)
+                });
+
+            cinematicCoreLine.colorGradient =
+                coreGradient;
+        }
+    }
+
+    private void UpdateSmoothCinematicComet()
+    {
+        bool visible =
+            cinematicTrailActive &&
+            fired &&
+            !stopped &&
+            rb != null;
+
+        if (!visible)
+        {
+            SetSmoothCinematicCometVisible(false);
+            return;
+        }
+
+        Vector2 velocity =
+            GetVelocity();
+
+        if (velocity.sqrMagnitude <
+            DirectionEpsilon)
+        {
+            SetSmoothCinematicCometVisible(false);
+            return;
+        }
+
+        ConfigureSmoothCinematicComet();
+
+        Vector2 direction =
+            velocity.normalized;
+
+        Vector2 arrowTail =
+            GetVisualTailWorldPosition(
+                direction);
+
+        // The luminous winning streak must read as a separate effect BEHIND
+        // the patterned arrow artwork. FINAL-2/3 ended the line at the visible
+        // arrow TIP, so the effect visually overlapped the full shaft.
+        //
+        // End just inside the actual rendered tail/nock to avoid a seam, then
+        // extend backward in one perfectly continuous world-space segment.
+        float overlap =
+            config != null
+                ? config.FinalApproachWinningStreakOverlap
+                : 0.035f;
+
+        Vector2 streakJoin =
+            arrowTail +
+            direction *
+            overlap;
+
+        float outerLength =
+            config != null
+                ? config.FinalApproachWinningStreakLength
+                : 0.95f;
+
+        float coreRatio =
+            config != null
+                ? config.FinalApproachCoreTrailTimeRatio
+                : 0.54f;
+
+        float coreLength =
+            outerLength *
+            Mathf.Clamp(
+                coreRatio,
+                0.40f,
+                0.80f);
+
+        Vector2 outerTail =
+            streakJoin -
+            direction *
+            outerLength;
+
+        Vector2 coreTail =
+            streakJoin -
+            direction *
+            coreLength;
+
+        if (cinematicContrastLine != null)
+        {
+            cinematicContrastLine.enabled = true;
+            cinematicContrastLine.SetPosition(
+                0,
+                new Vector3(
+                    outerTail.x,
+                    outerTail.y,
+                    transform.position.z));
+
+            cinematicContrastLine.SetPosition(
+                1,
+                new Vector3(
+                    streakJoin.x,
+                    streakJoin.y,
+                    transform.position.z));
+        }
+
+        if (cinematicOuterLine != null)
+        {
+            cinematicOuterLine.enabled = true;
+            cinematicOuterLine.SetPosition(
+                0,
+                new Vector3(
+                    outerTail.x,
+                    outerTail.y,
+                    transform.position.z));
+
+            cinematicOuterLine.SetPosition(
+                1,
+                new Vector3(
+                    streakJoin.x,
+                    streakJoin.y,
+                    transform.position.z));
+        }
+
+        if (cinematicCoreLine != null)
+        {
+            cinematicCoreLine.enabled = true;
+            cinematicCoreLine.SetPosition(
+                0,
+                new Vector3(
+                    coreTail.x,
+                    coreTail.y,
+                    transform.position.z));
+
+            cinematicCoreLine.SetPosition(
+                1,
+                new Vector3(
+                    streakJoin.x,
+                    streakJoin.y,
+                    transform.position.z));
+        }
+    }
+
+    private void SetSmoothCinematicCometVisible(
+        bool visible)
+    {
+        if (cinematicContrastLine != null)
+            cinematicContrastLine.enabled = visible;
+
+        if (cinematicOuterLine != null)
+            cinematicOuterLine.enabled = visible;
+
+        if (cinematicCoreLine != null)
+            cinematicCoreLine.enabled = visible;
+    }
+
+    private void EnsureCinematicArrowGlow()
+    {
+        if (arrowSpriteRenderer == null)
+            return;
+
+        if (cinematicArrowGlow == null)
+        {
+            Transform existing =
+                arrowSpriteRenderer.transform.Find(
+                    "CinematicArrowGlow");
+
+            if (existing != null)
+            {
+                cinematicArrowGlow =
+                    existing.GetComponent<SpriteRenderer>();
+            }
+
+            if (cinematicArrowGlow == null)
+            {
+                GameObject glowObject =
+                    new GameObject("CinematicArrowGlow");
+
+                glowObject.transform.SetParent(
+                    arrowSpriteRenderer.transform,
+                    false);
+
+                cinematicArrowGlow =
+                    glowObject.AddComponent<SpriteRenderer>();
+            }
+        }
+
+        cinematicArrowGlow.sprite =
+            arrowSpriteRenderer.sprite;
+
+        cinematicArrowGlow.flipX =
+            arrowSpriteRenderer.flipX;
+
+        cinematicArrowGlow.flipY =
+            arrowSpriteRenderer.flipY;
+
+        cinematicArrowGlow.sortingLayerID =
+            arrowSpriteRenderer.sortingLayerID;
+
+        cinematicArrowGlow.sortingOrder =
+            baseArrowSortingOrderCaptured
+                ? baseArrowSortingOrder + 3
+                : arrowSpriteRenderer.sortingOrder + 3;
+
+        cinematicArrowGlow.transform.localPosition =
+            Vector3.zero;
+
+        cinematicArrowGlow.transform.localRotation =
+            Quaternion.identity;
+
+        float glowScale =
+            config != null
+                ? config.FinalApproachArrowGlowScale
+                : 1.09f;
+
+        cinematicArrowGlow.transform.localScale =
+            Vector3.one * glowScale;
+
+        cinematicArrowGlow.color =
+            new Color(
+                1f,
+                0.83f,
+                0.20f,
+                cinematicTrailActive && config != null
+                    ? config.FinalApproachArrowGlowAlpha
+                    : 0f);
+    }
+
+    /// <summary>
+    /// Presentation-only trail boost used after the LevelManager has confirmed
+    /// that the arrow's nearest upcoming contact is a valid target scoring face.
+    /// It never changes velocity, collision geometry or reflection behaviour.
+    /// </summary>
+    public void SetCinematicTrail(bool enabled)
+    {
+        if (cinematicTrailActive == enabled)
+            return;
+
+        cinematicTrailActive = enabled;
+        ApplyCinematicSorting(enabled);
+        ApplyTrailStyle(enabled);
+        UpdateCinematicArrowGlow();
+
+        if (cinematicCoreTrail != null)
+        {
+            cinematicCoreTrail.emitting = false;
+            cinematicCoreTrail.Clear();
+            cinematicCoreTrail.enabled = false;
+        }
+
+        if (enabled)
+        {
+            // The normal TrailRenderer is frame-sampled and was still visible
+            // underneath the smooth cinematic comet in FINAL-2. At mobile
+            // resolution that overlap reads as repeating blocks/stripes.
+            //
+            // Once a winning final segment is confirmed, remove the sampled
+            // trail completely and render ONLY the analytical gold + white
+            // comet. This is presentation-only and never changes movement.
+            if (trailRenderer != null)
+            {
+                trailRenderer.emitting = false;
+                trailRenderer.Clear();
+            }
+
+            UpdateSmoothCinematicComet();
+            return;
+        }
+
+        SetSmoothCinematicCometVisible(false);
+
+        // If a cinematic prediction is ever cancelled while the arrow is
+        // still flying, restore the ordinary trail cleanly. In the normal
+        // success path the arrow has already stopped, so this does nothing.
+        if (trailRenderer != null &&
+            fired &&
+            !stopped)
+        {
+            trailRenderer.Clear();
+            trailRenderer.emitting = true;
+        }
+    }
+
+    private void UpdateCinematicArrowGlow()
+    {
+        if (cinematicArrowGlow == null)
+            return;
+
+        if (arrowSpriteRenderer != null)
+        {
+            cinematicArrowGlow.sprite =
+                arrowSpriteRenderer.sprite;
+            cinematicArrowGlow.flipX =
+                arrowSpriteRenderer.flipX;
+            cinematicArrowGlow.flipY =
+                arrowSpriteRenderer.flipY;
+        }
+
+        float glowScale =
+            config != null
+                ? config.FinalApproachArrowGlowScale
+                : 1.09f;
+
+        float glowAlpha =
+            cinematicTrailActive && config != null
+                ? config.FinalApproachArrowGlowAlpha
+                : 0f;
+
+        cinematicArrowGlow.transform.localScale =
+            Vector3.one * glowScale;
+
+        cinematicArrowGlow.color =
+            new Color(
+                1f,
+                0.86f,
+                0.24f,
+                glowAlpha);
+    }
+
+    private void ApplyTrailStyle(bool cinematic)
+    {
+        if (trailRenderer == null)
+            return;
+
+        // Keep the normal sampled arrow trail stable. The special winning
+        // appearance is drawn by the smooth two-line comet instead.
+        trailRenderer.time = baseTrailTime;
+        trailRenderer.widthMultiplier = baseTrailWidth;
+
+        float startAlpha =
+            Mathf.Clamp01(
+                baseTrailStartAlpha);
+
+        Color startColor =
+            new Color(1f, 0.86f, 0.25f);
+
+        Color endColor =
+            new Color(1f, 0.97f, 0.78f);
 
         Gradient gradient = new Gradient();
         gradient.SetKeys(
             new[]
             {
-                new GradientColorKey(new Color(1f, 0.86f, 0.25f), 0f),
-                new GradientColorKey(new Color(1f, 0.97f, 0.78f), 1f)
+                new GradientColorKey(startColor, 0f),
+                new GradientColorKey(endColor, 1f)
             },
             new[]
             {
@@ -1034,15 +1886,44 @@ public sealed class ArrowController : MonoBehaviour
             });
 
         trailRenderer.colorGradient = gradient;
-        trailRenderer.widthCurve = new AnimationCurve(
-            new Keyframe(0f, 1f),
-            new Keyframe(1f, 0.18f));
+        trailRenderer.widthCurve =
+            new AnimationCurve(
+                new Keyframe(0f, 1f),
+                new Keyframe(1f, 0.18f));
+
+        if (cinematicCoreTrail != null)
+        {
+            cinematicCoreTrail.emitting = false;
+            cinematicCoreTrail.Clear();
+            cinematicCoreTrail.enabled = false;
+        }
+
+        ConfigureSmoothCinematicComet();
+
     }
 
     private void SetTrailEmitting(bool emitting)
     {
         if (trailRenderer != null)
-            trailRenderer.emitting = emitting;
+        {
+            // Never allow the ordinary sampled trail to reappear while the
+            // smooth final-shot comet owns the presentation.
+            trailRenderer.emitting =
+                emitting &&
+                !cinematicTrailActive;
+
+            if (cinematicTrailActive)
+                trailRenderer.Clear();
+        }
+
+        if (cinematicCoreTrail != null)
+        {
+            cinematicCoreTrail.emitting = false;
+            cinematicCoreTrail.enabled = false;
+        }
+
+        if (!emitting)
+            SetSmoothCinematicCometVisible(false);
     }
 
     private void ApplyRotation(
@@ -1072,9 +1953,28 @@ public sealed class ArrowController : MonoBehaviour
     private void OnDisable()
     {
         SetTrailEmitting(false);
+        ApplyCinematicSorting(false);
 
         if (trailRenderer != null)
             trailRenderer.Clear();
+
+        if (cinematicCoreTrail != null)
+        {
+            cinematicCoreTrail.emitting = false;
+            cinematicCoreTrail.Clear();
+            cinematicCoreTrail.enabled = false;
+        }
+
+        SetSmoothCinematicCometVisible(false);
+
+        if (cinematicArrowGlow != null)
+        {
+            Color glowColor =
+                cinematicArrowGlow.color;
+            glowColor.a = 0f;
+            cinematicArrowGlow.color =
+                glowColor;
+        }
     }
 
 }

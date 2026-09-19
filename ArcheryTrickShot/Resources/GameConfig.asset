@@ -44,10 +44,59 @@ MonoBehaviour:
   RicochetShakeMagnitude: 0.012
   HitCameraZoomFactor: 0.985
   HitCameraZoomDuration: 0.16
-  TargetHitPulseScale: 1.035
-  TargetHitPulseDuration: 0.18
+  TargetHitPulseScale: 1.045
+  TargetHitPulseDuration: 0.22
   MirrorPulseScale: 1.055
   MirrorPulseDuration: 0.12
+  FinalShotCinematicEnabled: 1
+  FinalApproachTriggerDistance: 2.85
+  FinalApproachTimeScale: 0.68
+  BullseyeApproachTimeScale: 0.5
+  TrickShotApproachTimeScale: 0.48
+  BullseyeTrickShotApproachTimeScale: 0.4
+  FinalApproachZoomFactor: 0.935
+  FinalApproachCameraFocusStrength: 0.23
+  TrickShotCameraFocusStrength: 0.29
+  FinalApproachMaxCameraShift: 1.05
+  FinalApproachEaseInDuration: 0.22
+  FinalImpactFreezeDuration: 0.05
+  BullseyeImpactFreezeDuration: 0.07
+  FinalImpactZoomFactor: 0.915
+  BullseyeImpactZoomFactor: 0.905
+  FinalImpactCameraFocusStrength: 0.34
+  FinalImpactHoldDuration: 0.2
+  BullseyeImpactHoldDuration: 0.26
+  FinalImpactCameraReturnDuration: 0.32
+  CinematicHitResultDelay: 0.82
+  CinematicBullseyeResultDelay: 1.02
+  CinematicTrickShotResultDelay: 0.94
+  CinematicBullseyeTrickShotResultDelay: 1.12
+  FinalApproachTrailWidthMultiplier: 5.25
+  FinalApproachTrailAlphaMultiplier: 1.75
+  FinalApproachTrailTimeMultiplier: 1.45
+  FinalApproachWinningStreakLength: 1.1
+  FinalApproachWinningStreakOverlap: 0.035
+  FinalApproachCoreTrailWidthMultiplier: 1.95
+  FinalApproachContrastTrailWidthMultiplier: 8
+  FinalApproachContrastTrailAlpha: 0.3
+  FinalApproachCoreTrailTimeRatio: 0.54
+  FinalApproachArrowGlowScale: 1.09
+  FinalApproachArrowGlowAlpha: 0.03
+  FinalApproachMusicDuckMultiplier: 0.48
+  FinalApproachMusicPitch: 0.965
+  FinalApproachMusicDuckDuration: 0.9
+  FinalImpactParticleCount: 10
+  BullseyeImpactParticleCount: 14
+  FinalImpactParticleSpeed: 2.5
+  FinalImpactShockwaveRadius: 0.56
+  BullseyeImpactShockwaveRadius: 0.74
+  FinalImpactFlashDuration: 0.05
+  FinalImpactSparkLength: 0.13
+  TargetImpactRecoilDistance: 0.05
+  BullseyeTargetImpactRecoilDistance: 0.07
+  TargetImpactRecoilDuration: 0.26
+  TargetImpactRecoilRotation: 1.8
+  BullseyeTargetImpactRecoilRotation: 2.4
   ArrowTrailTime: 0.11
   ArrowTrailWidth: 0.028
   ArrowTrailStartAlpha: 0.55

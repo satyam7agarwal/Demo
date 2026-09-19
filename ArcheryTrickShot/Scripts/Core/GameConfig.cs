@@ -58,6 +58,142 @@ public sealed class GameConfig : ScriptableObject
     [Range(1f, 1.15f)] public float MirrorPulseScale = 1.055f;
     [Min(0.05f)] public float MirrorPulseDuration = 0.12f;
 
+    [Header("Final Shot Cinematic")]
+    [Tooltip(
+        "Only starts when the fired arrow's nearest upcoming collision is a valid target scoring face. " +
+        "Misses, walls, invalid target contacts and pre-ricochet segments stay at normal speed.")]
+    public bool FinalShotCinematicEnabled = true;
+
+    [Tooltip("World-space distance from the scoring face at which the final approach begins.")]
+    [Range(0.5f, 4f)] public float FinalApproachTriggerDistance = 2.85f;
+
+    [Tooltip("Slow-motion scale for a confirmed direct final approach.")]
+    [Range(0.30f, 1f)] public float FinalApproachTimeScale = 0.68f;
+
+    [Tooltip("Slow motion for a direct approach predicted to land in the bullseye.")]
+    [Range(0.25f, 1f)] public float BullseyeApproachTimeScale = 0.50f;
+
+    [Tooltip("Deeper slow motion after at least one ricochet.")]
+    [Range(0.25f, 1f)] public float TrickShotApproachTimeScale = 0.48f;
+
+    [Tooltip("Strongest slow motion for a ricochet shot predicted to land in the bullseye.")]
+    [Range(0.20f, 1f)] public float BullseyeTrickShotApproachTimeScale = 0.40f;
+
+    [Tooltip("Orthographic zoom used during the final approach. Lower means closer.")]
+    [Range(0.92f, 1f)] public float FinalApproachZoomFactor = 0.935f;
+
+    [Tooltip("How much the camera drifts toward the predicted impact point on direct shots.")]
+    [Range(0f, 0.30f)] public float FinalApproachCameraFocusStrength = 0.23f;
+
+    [Tooltip("Slightly stronger target focus after a ricochet.")]
+    [Range(0f, 0.35f)] public float TrickShotCameraFocusStrength = 0.29f;
+
+    [Tooltip("Maximum camera translation during final-shot focus, in world units.")]
+    [Range(0f, 1.5f)] public float FinalApproachMaxCameraShift = 1.05f;
+
+    [Min(0.01f)] public float FinalApproachEaseInDuration = 0.22f;
+
+    [Tooltip("Real-time impact freeze for normal scoring hits.")]
+    [Range(0f, 0.12f)] public float FinalImpactFreezeDuration = 0.050f;
+
+    [Tooltip("Slightly longer real-time impact freeze for a bullseye.")]
+    [Range(0f, 0.15f)] public float BullseyeImpactFreezeDuration = 0.070f;
+
+    [Tooltip("Camera zoom at the exact impact frame for normal hits.")]
+    [Range(0.90f, 1f)] public float FinalImpactZoomFactor = 0.915f;
+
+    [Tooltip("Camera zoom at the exact impact frame for bullseyes.")]
+    [Range(0.90f, 1f)] public float BullseyeImpactZoomFactor = 0.905f;
+
+    [Tooltip("How strongly the camera settles on the impact point during the hit-stop.")]
+    [Range(0f, 0.40f)] public float FinalImpactCameraFocusStrength = 0.34f;
+
+    [Tooltip("Brief real-time hold after hit-stop before the camera begins returning.")]
+    [Range(0f, 0.35f)] public float FinalImpactHoldDuration = 0.20f;
+
+    [Tooltip("Bullseyes get a slightly longer hold before the camera returns.")]
+    [Range(0f, 0.40f)] public float BullseyeImpactHoldDuration = 0.26f;
+
+    [Min(0.05f)] public float FinalImpactCameraReturnDuration = 0.32f;
+
+    [Header("Final Shot Result Timing")]
+    [Min(0.2f)] public float CinematicHitResultDelay = 0.82f;
+    [Min(0.2f)] public float CinematicBullseyeResultDelay = 1.02f;
+    [Min(0.2f)] public float CinematicTrickShotResultDelay = 0.94f;
+    [Min(0.2f)] public float CinematicBullseyeTrickShotResultDelay = 1.12f;
+
+    [Header("Final Shot Trail")]
+    [Range(1f, 8f)] public float FinalApproachTrailWidthMultiplier = 5.25f;
+    [Range(0.5f, 2f)] public float FinalApproachTrailAlphaMultiplier = 1.75f;
+    [Range(1f, 2f)] public float FinalApproachTrailTimeMultiplier = 1.45f;
+
+    [Tooltip(
+        "Fixed world-space length of the luminous winning streak behind the actual arrow. " +
+        "Keeping this independent of frame sampling makes it stable on mobile.")]
+    [Range(0.60f, 1.30f)]
+    public float FinalApproachWinningStreakLength = 1.10f;
+
+    [Tooltip(
+        "Small overlap into the physical arrow tail so there is no visible gap, " +
+        "while keeping the streak clearly behind the arrow artwork.")]
+    [Range(0f, 0.10f)]
+    public float FinalApproachWinningStreakOverlap = 0.035f;
+
+    [Tooltip("Width multiplier for the bright white-gold core inside the final winning trail.")]
+    [Range(0.8f, 3f)] public float FinalApproachCoreTrailWidthMultiplier = 1.95f;
+
+    [Tooltip(
+        "Wide dark under-ribbon used only to keep the winning streak readable " +
+        "against bright sand/sky backgrounds.")]
+    [Range(2f, 12f)]
+    public float FinalApproachContrastTrailWidthMultiplier = 8.0f;
+
+    [Tooltip("Opacity of the dark contrast ribbon behind the gold streak.")]
+    [Range(0f, 0.60f)]
+    public float FinalApproachContrastTrailAlpha = 0.30f;
+
+    [Tooltip("Core-trail lifetime relative to the configured outer comet tail.")]
+    [Range(0.4f, 0.8f)] public float FinalApproachCoreTrailTimeRatio = 0.54f;
+
+    [Tooltip("Scale of the soft silhouette glow around the arrow during the confirmed winning segment.")]
+    [Range(1f, 1.25f)] public float FinalApproachArrowGlowScale = 1.09f;
+
+    [Tooltip("Opacity of the soft gold arrow glow during the confirmed winning segment.")]
+    [Range(0f, 0.60f)] public float FinalApproachArrowGlowAlpha = 0.03f;
+
+    [Header("Final Shot Audio")]
+    [Tooltip("Background-music volume multiplier while the arrow is on a confirmed final approach.")]
+    [Range(0.20f, 1f)] public float FinalApproachMusicDuckMultiplier = 0.48f;
+
+    [Tooltip("Music pitch during the final approach. Kept subtle to avoid sounding distorted.")]
+    [Range(0.85f, 1f)] public float FinalApproachMusicPitch = 0.965f;
+
+    [Min(0.2f)] public float FinalApproachMusicDuckDuration = 0.90f;
+
+    [Header("Final Shot Impact VFX")]
+    [Range(6, 40)] public int FinalImpactParticleCount = 10;
+    [Range(8, 48)] public int BullseyeImpactParticleCount = 14;
+    [Range(0.5f, 6f)] public float FinalImpactParticleSpeed = 2.5f;
+    [Range(0.15f, 1.5f)] public float FinalImpactShockwaveRadius = 0.56f;
+    [Range(0.20f, 1.8f)] public float BullseyeImpactShockwaveRadius = 0.74f;
+
+    [Tooltip("Very short localized white flash at the exact arrow-tip contact.")]
+    [Range(0.02f, 0.10f)] public float FinalImpactFlashDuration = 0.050f;
+
+    [Tooltip("World-space length of each directional impact spark.")]
+    [Range(0.04f, 0.30f)] public float FinalImpactSparkLength = 0.13f;
+
+    [Header("Target Impact Recoil")]
+    [Range(0f, 0.10f)] public float TargetImpactRecoilDistance = 0.050f;
+    [Range(0f, 0.14f)] public float BullseyeTargetImpactRecoilDistance = 0.070f;
+    [Range(0.08f, 0.40f)] public float TargetImpactRecoilDuration = 0.26f;
+
+    [Tooltip("Maximum small Z-axis rocking caused by an off-centre normal hit.")]
+    [Range(0f, 4f)] public float TargetImpactRecoilRotation = 1.8f;
+
+    [Tooltip("Maximum small Z-axis rocking caused by an off-centre bullseye/inner hit.")]
+    [Range(0f, 5f)] public float BullseyeTargetImpactRecoilRotation = 2.4f;
+
     [Header("Arrow Trail")]
     [Range(0.03f, 0.30f)] public float ArrowTrailTime = 0.11f;
     [Range(0.005f, 0.08f)] public float ArrowTrailWidth = 0.028f;
@@ -122,6 +258,80 @@ public sealed class GameConfig : ScriptableObject
         HitCameraZoomFactor = Mathf.Clamp(HitCameraZoomFactor, 0.95f, 1f);
         TargetHitPulseScale = Mathf.Max(1f, TargetHitPulseScale);
         MirrorPulseScale = Mathf.Max(1f, MirrorPulseScale);
+        FinalApproachTriggerDistance = Mathf.Max(0.5f, FinalApproachTriggerDistance);
+        FinalApproachTimeScale = Mathf.Clamp(FinalApproachTimeScale, 0.30f, 1f);
+        BullseyeApproachTimeScale = Mathf.Clamp(BullseyeApproachTimeScale, 0.25f, 1f);
+        TrickShotApproachTimeScale = Mathf.Clamp(TrickShotApproachTimeScale, 0.25f, 1f);
+        BullseyeTrickShotApproachTimeScale = Mathf.Clamp(BullseyeTrickShotApproachTimeScale, 0.20f, 1f);
+        FinalApproachZoomFactor = Mathf.Clamp(FinalApproachZoomFactor, 0.92f, 1f);
+        FinalApproachCameraFocusStrength = Mathf.Clamp(FinalApproachCameraFocusStrength, 0f, 0.30f);
+        TrickShotCameraFocusStrength = Mathf.Clamp(TrickShotCameraFocusStrength, 0f, 0.35f);
+        FinalApproachMaxCameraShift = Mathf.Max(0f, FinalApproachMaxCameraShift);
+        FinalApproachEaseInDuration = Mathf.Max(0.01f, FinalApproachEaseInDuration);
+        FinalImpactFreezeDuration = Mathf.Max(0f, FinalImpactFreezeDuration);
+        BullseyeImpactFreezeDuration = Mathf.Max(FinalImpactFreezeDuration, BullseyeImpactFreezeDuration);
+        FinalImpactZoomFactor = Mathf.Clamp(FinalImpactZoomFactor, 0.90f, 1f);
+        BullseyeImpactZoomFactor = Mathf.Clamp(BullseyeImpactZoomFactor, 0.90f, FinalImpactZoomFactor);
+        FinalImpactCameraFocusStrength = Mathf.Clamp(FinalImpactCameraFocusStrength, 0f, 0.40f);
+        FinalImpactHoldDuration = Mathf.Max(0f, FinalImpactHoldDuration);
+        BullseyeImpactHoldDuration = Mathf.Max(FinalImpactHoldDuration, BullseyeImpactHoldDuration);
+        FinalImpactCameraReturnDuration = Mathf.Max(0.05f, FinalImpactCameraReturnDuration);
+        CinematicHitResultDelay = Mathf.Max(0.2f, CinematicHitResultDelay);
+        CinematicBullseyeResultDelay = Mathf.Max(CinematicHitResultDelay, CinematicBullseyeResultDelay);
+        CinematicTrickShotResultDelay = Mathf.Max(CinematicHitResultDelay, CinematicTrickShotResultDelay);
+        CinematicBullseyeTrickShotResultDelay = Mathf.Max(
+            Mathf.Max(CinematicBullseyeResultDelay, CinematicTrickShotResultDelay),
+            CinematicBullseyeTrickShotResultDelay);
+        FinalApproachTrailWidthMultiplier = Mathf.Clamp(FinalApproachTrailWidthMultiplier, 1f, 8f);
+        FinalApproachTrailAlphaMultiplier = Mathf.Clamp(FinalApproachTrailAlphaMultiplier, 0.5f, 2f);
+        FinalApproachTrailTimeMultiplier = Mathf.Max(1f, FinalApproachTrailTimeMultiplier);
+        FinalApproachWinningStreakLength = Mathf.Clamp(
+            FinalApproachWinningStreakLength,
+            0.60f,
+            1.30f);
+        FinalApproachWinningStreakOverlap = Mathf.Clamp(
+            FinalApproachWinningStreakOverlap,
+            0f,
+            0.10f);
+        FinalApproachCoreTrailWidthMultiplier = Mathf.Clamp(
+            FinalApproachCoreTrailWidthMultiplier,
+            0.8f,
+            3f);
+        FinalApproachContrastTrailWidthMultiplier = Mathf.Clamp(
+            FinalApproachContrastTrailWidthMultiplier,
+            2f,
+            12f);
+        FinalApproachContrastTrailAlpha = Mathf.Clamp(
+            FinalApproachContrastTrailAlpha,
+            0f,
+            0.60f);
+        FinalApproachCoreTrailTimeRatio = Mathf.Clamp(
+            FinalApproachCoreTrailTimeRatio,
+            0.4f,
+            0.8f);
+        FinalApproachArrowGlowScale = Mathf.Clamp(FinalApproachArrowGlowScale, 1f, 1.25f);
+        FinalApproachArrowGlowAlpha = Mathf.Clamp(FinalApproachArrowGlowAlpha, 0f, 0.60f);
+        FinalApproachMusicDuckMultiplier = Mathf.Clamp(FinalApproachMusicDuckMultiplier, 0.20f, 1f);
+        FinalApproachMusicPitch = Mathf.Clamp(FinalApproachMusicPitch, 0.85f, 1f);
+        FinalApproachMusicDuckDuration = Mathf.Max(0.2f, FinalApproachMusicDuckDuration);
+        FinalImpactParticleCount = Mathf.Clamp(FinalImpactParticleCount, 6, 40);
+        BullseyeImpactParticleCount = Mathf.Clamp(BullseyeImpactParticleCount, FinalImpactParticleCount, 48);
+        FinalImpactParticleSpeed = Mathf.Max(0.5f, FinalImpactParticleSpeed);
+        FinalImpactShockwaveRadius = Mathf.Max(0.15f, FinalImpactShockwaveRadius);
+        BullseyeImpactShockwaveRadius = Mathf.Max(FinalImpactShockwaveRadius, BullseyeImpactShockwaveRadius);
+        FinalImpactFlashDuration = Mathf.Clamp(FinalImpactFlashDuration, 0.02f, 0.10f);
+        FinalImpactSparkLength = Mathf.Clamp(FinalImpactSparkLength, 0.04f, 0.30f);
+        TargetImpactRecoilDistance = Mathf.Clamp(TargetImpactRecoilDistance, 0f, 0.10f);
+        BullseyeTargetImpactRecoilDistance = Mathf.Clamp(
+            BullseyeTargetImpactRecoilDistance,
+            TargetImpactRecoilDistance,
+            0.14f);
+        TargetImpactRecoilDuration = Mathf.Clamp(TargetImpactRecoilDuration, 0.08f, 0.40f);
+        TargetImpactRecoilRotation = Mathf.Clamp(TargetImpactRecoilRotation, 0f, 4f);
+        BullseyeTargetImpactRecoilRotation = Mathf.Clamp(
+            BullseyeTargetImpactRecoilRotation,
+            TargetImpactRecoilRotation,
+            5f);
         ArrowTrailTime = Mathf.Max(0.03f, ArrowTrailTime);
         ArrowTrailWidth = Mathf.Max(0.005f, ArrowTrailWidth);
         ArrowTrailStartAlpha = Mathf.Clamp01(ArrowTrailStartAlpha);

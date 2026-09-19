@@ -214,13 +214,15 @@ public sealed class GameUIController : MonoBehaviour
         PlayHitFeedback(
             "TARGET HIT!",
             0,
+            false,
             false);
     }
 
     public void PlayHitFeedback(
         string label,
         int score,
-        bool isBullseye)
+        bool isBullseye,
+        bool cinematic = false)
     {
         string message =
             score > 0
@@ -232,6 +234,13 @@ public sealed class GameUIController : MonoBehaviour
                 ? config.YellowColor
                 : config.LimeColor;
 
+        // Cinematic hits use localized world-space sparks/ring, so the full
+        // screen wash is intentionally restrained. The text stays a little
+        // longer instead of covering the whole scene with color.
+        float flashAlpha = cinematic
+            ? 0f
+            : (isBullseye ? 0.085f : 0.055f);
+
         PlayFeedback(
             message,
             accent,
@@ -239,7 +248,9 @@ public sealed class GameUIController : MonoBehaviour
                 accent.r,
                 accent.g,
                 accent.b,
-                isBullseye ? 0.10f : 0.065f));
+                flashAlpha),
+            cinematic ? 1.35f : 1f,
+            cinematic);
     }
 
     public void PlayRicochetFeedback(int ricochetCount)
@@ -495,22 +506,59 @@ public sealed class GameUIController : MonoBehaviour
         GameAudioController.Instance?.PlayUIClick();
     }
 
-    private void PlayFeedback(string message, Color textColor, Color flashColor)
+    private void PlayFeedback(
+        string message,
+        Color textColor,
+        Color flashColor,
+        float durationMultiplier = 1f,
+        bool cinematic = false)
     {
         if (feedbackRoutine != null)
             StopCoroutine(feedbackRoutine);
-        feedbackRoutine = StartCoroutine(FeedbackSequence(message, textColor, flashColor));
+        feedbackRoutine = StartCoroutine(
+            FeedbackSequence(
+                message,
+                textColor,
+                flashColor,
+                durationMultiplier,
+                cinematic));
     }
 
-    private IEnumerator FeedbackSequence(string message, Color textColor, Color flashColor)
+    private IEnumerator FeedbackSequence(
+        string message,
+        Color textColor,
+        Color flashColor,
+        float durationMultiplier,
+        bool cinematic)
     {
+        RectTransform feedbackRect =
+            view.FeedbackText.rectTransform;
+
+        Vector2 originalFeedbackPosition =
+            feedbackRect.anchoredPosition;
+
+        if (cinematic)
+        {
+            // Keep the target/embedded arrow visually clean. The reward text
+            // sits above-left of its normal center position instead of covering
+            // the impact point.
+            feedbackRect.anchoredPosition =
+                originalFeedbackPosition +
+                new Vector2(-165f, 105f);
+        }
+
         view.FeedbackText.gameObject.SetActive(true);
         view.FeedbackText.text = message;
         view.FeedbackText.color = textColor;
         view.FeedbackText.alpha = 0f;
-        view.FeedbackText.rectTransform.localScale = new Vector3(0.82f, 0.82f, 1f);
+        feedbackRect.localScale =
+            new Vector3(0.82f, 0.82f, 1f);
 
-        view.ScreenFlash.gameObject.SetActive(true);
+        bool useScreenFlash =
+            flashColor.a > 0.001f;
+
+        view.ScreenFlash.gameObject.SetActive(
+            useScreenFlash);
         view.ScreenFlash.raycastTarget = false;
         Color flash = flashColor;
         flash.a = 0f;
@@ -533,7 +581,12 @@ public sealed class GameUIController : MonoBehaviour
             yield return null;
         }
 
-        yield return new WaitForSecondsRealtime(Mathf.Max(0f, config.UIFeedbackDuration - 0.24f));
+        float totalDuration =
+            config.UIFeedbackDuration *
+            Mathf.Max(0.5f, durationMultiplier);
+
+        yield return new WaitForSecondsRealtime(
+            Mathf.Max(0f, totalDuration - 0.24f));
 
         float exitDuration = 0.12f;
         elapsed = 0f;
@@ -550,6 +603,8 @@ public sealed class GameUIController : MonoBehaviour
 
         view.FeedbackText.gameObject.SetActive(false);
         view.ScreenFlash.gameObject.SetActive(false);
+        feedbackRect.anchoredPosition =
+            originalFeedbackPosition;
         feedbackRoutine = null;
     }
 

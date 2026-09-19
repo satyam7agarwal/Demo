@@ -39,6 +39,7 @@ public sealed class GameAudioController : MonoBehaviour
     private AudioSource sfxSource;
     private AudioSource musicSource;
     private AudioSource ricochetSource;
+    private GameConfig gameConfig;
     private Coroutine musicDuckRoutine;
     private float configuredMusicVolume;
     private bool sfxEnabled = true;
@@ -64,13 +65,15 @@ public sealed class GameAudioController : MonoBehaviour
 
     public void Configure(GameConfig config)
     {
-        config ??= GameConfig.Load();
+        gameConfig = config != null
+            ? config
+            : GameConfig.Load();
 
         EnsureAudioSources();
         ConfigureSfxSource();
-        ConfigureMusicSource(config);
+        ConfigureMusicSource(gameConfig);
         LoadMissingClips();
-        StartBackgroundMusic(config);
+        StartBackgroundMusic(gameConfig);
     }
 
     private void EnsureAudioSources()
@@ -270,6 +273,53 @@ public sealed class GameAudioController : MonoBehaviour
             shotVolume);
     }
 
+    public void BeginFinalApproach(
+        bool trickShot,
+        bool predictedBullseye)
+    {
+        gameConfig ??= GameConfig.Load();
+
+        float multiplier =
+            gameConfig.FinalApproachMusicDuckMultiplier;
+
+        if (trickShot)
+            multiplier -= 0.05f;
+
+        if (predictedBullseye)
+            multiplier -= 0.04f;
+
+        multiplier = Mathf.Clamp(multiplier, 0.20f, 1f);
+
+        if (musicSource != null)
+        {
+            float pitch = gameConfig.FinalApproachMusicPitch;
+
+            if (trickShot || predictedBullseye)
+                pitch -= 0.015f;
+
+            musicSource.pitch = Mathf.Clamp(pitch, 0.90f, 1f);
+        }
+
+        DuckMusic(
+            multiplier,
+            gameConfig.FinalApproachMusicDuckDuration);
+    }
+
+    public void CancelTransientDuck()
+    {
+        if (musicDuckRoutine != null)
+        {
+            StopCoroutine(musicDuckRoutine);
+            musicDuckRoutine = null;
+        }
+
+        if (musicSource != null)
+        {
+            musicSource.volume = configuredMusicVolume;
+            musicSource.pitch = 1f;
+        }
+    }
+
     public void PlayMirror(int chainCount = 1)
     {
         if (!sfxEnabled || mirrorClip == null)
@@ -295,11 +345,43 @@ public sealed class GameAudioController : MonoBehaviour
 
     public void PlayTargetHit()
     {
+        PlayTargetHit(false, false);
+    }
+
+    public void PlayTargetHit(
+        bool cinematic,
+        bool isBullseye)
+    {
         Play(
             targetHitClip,
             impactVolume);
 
-        DuckMusic(0.68f, 0.34f);
+        // The approach lowers music pitch slightly; snapping it back at the
+        // exact THUNK makes the impact feel sharper without altering SFX pitch.
+        if (musicSource != null)
+            musicSource.pitch = 1f;
+
+        if (!cinematic)
+        {
+            DuckMusic(0.68f, 0.34f);
+            return;
+        }
+
+        gameConfig ??= GameConfig.Load();
+
+        float multiplier = isBullseye
+            ? Mathf.Max(
+                0.20f,
+                gameConfig.FinalApproachMusicDuckMultiplier - 0.12f)
+            : Mathf.Max(
+                0.20f,
+                gameConfig.FinalApproachMusicDuckMultiplier - 0.06f);
+
+        DuckMusic(
+            multiplier,
+            Mathf.Max(
+                0.72f,
+                gameConfig.FinalApproachMusicDuckDuration));
     }
 
     // Backward-compatible alias for older LevelManager versions.
@@ -368,6 +450,7 @@ public sealed class GameAudioController : MonoBehaviour
         float duration)
     {
         float normalVolume = configuredMusicVolume;
+        float startVolume = musicSource.volume;
         float duckedVolume = normalVolume * multiplier;
         const float fadeTime = 0.07f;
 
@@ -376,7 +459,7 @@ public sealed class GameAudioController : MonoBehaviour
         {
             elapsed += Time.unscaledDeltaTime;
             float t = Mathf.Clamp01(elapsed / fadeTime);
-            musicSource.volume = Mathf.Lerp(normalVolume, duckedVolume, t);
+            musicSource.volume = Mathf.Lerp(startVolume, duckedVolume, t);
             yield return null;
         }
 

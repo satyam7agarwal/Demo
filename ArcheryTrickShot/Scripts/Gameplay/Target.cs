@@ -121,6 +121,8 @@ public sealed class Target : MonoBehaviour
     private GameConfig config;
     private Coroutine hitPulseRoutine;
     private Vector3 hitPulseBaseScale;
+    private Vector3 hitPulseBaseLocalPosition;
+    private Quaternion hitPulseBaseLocalRotation;
     private SpriteRenderer[] hitRenderers;
     private Color[] hitBaseColors;
 
@@ -389,12 +391,18 @@ public sealed class Target : MonoBehaviour
             contactPoint,
             incomingDirection);
 
-        PlaySuccessPulse(zone);
+        PlaySuccessPulse(
+            zone,
+            incomingDirection,
+            contactPoint);
         ScoredHit?.Invoke(LastHitResult);
         Hit?.Invoke();
     }
 
-    private void PlaySuccessPulse(TargetHitZone zone)
+    private void PlaySuccessPulse(
+        TargetHitZone zone,
+        Vector2 incomingDirection,
+        Vector2 contactPoint)
     {
         if (!isActiveAndEnabled)
             return;
@@ -403,71 +411,242 @@ public sealed class Target : MonoBehaviour
         {
             StopCoroutine(hitPulseRoutine);
             transform.localScale = hitPulseBaseScale;
+            transform.localPosition =
+                hitPulseBaseLocalPosition;
+            transform.localRotation =
+                hitPulseBaseLocalRotation;
         }
 
-        // Capture after LevelManager has applied this level's target scale.
+        // Capture after LevelManager has applied this level's transform.
         hitPulseBaseScale = transform.localScale;
+        hitPulseBaseLocalPosition =
+            transform.localPosition;
+        hitPulseBaseLocalRotation =
+            transform.localRotation;
+
+        Vector3 worldRecoil =
+            new Vector3(
+                incomingDirection.x,
+                incomingDirection.y,
+                0f);
+
+        if (worldRecoil.sqrMagnitude > 0.0001f)
+            worldRecoil.Normalize();
+
+        float recoilDistance =
+            config != null
+                ? zone == TargetHitZone.Bullseye
+                    ? config.BullseyeTargetImpactRecoilDistance
+                    : config.TargetImpactRecoilDistance
+                : zone == TargetHitZone.Bullseye
+                    ? 0.045f
+                    : 0.030f;
+
+        worldRecoil *= recoilDistance;
+
+        Vector3 localRecoil =
+            transform.parent != null
+                ? transform.parent.InverseTransformVector(
+                    worldRecoil)
+                : worldRecoil;
+
+        float normalizedVerticalImpact = 0f;
+
+        if (scoringFace != null)
+        {
+            Bounds faceBounds =
+                scoringFace.bounds;
+
+            normalizedVerticalImpact =
+                Mathf.Clamp(
+                    (contactPoint.y -
+                     faceBounds.center.y) /
+                    Mathf.Max(
+                        0.01f,
+                        faceBounds.extents.y),
+                    -1f,
+                    1f);
+        }
+
+        float maxRotation =
+            config != null
+                ? zone == TargetHitZone.Bullseye
+                    ? config.BullseyeTargetImpactRecoilRotation
+                    : config.TargetImpactRecoilRotation
+                : zone == TargetHitZone.Bullseye
+                    ? 2.4f
+                    : 1.8f;
+
+        // Off-centre impacts impart a tiny believable rotational impulse.
+        // A true bullseye remains mostly translational, which reads heavier.
+        float horizontalSign =
+            Mathf.Abs(incomingDirection.x) > 0.001f
+                ? Mathf.Sign(incomingDirection.x)
+                : 1f;
+
+        float recoilRotation =
+            -normalizedVerticalImpact *
+            horizontalSign *
+            maxRotation;
+
         hitPulseRoutine = StartCoroutine(
-            SuccessPulseRoutine(zone));
+            SuccessPulseRoutine(
+                zone,
+                localRecoil,
+                recoilRotation));
     }
 
-    private IEnumerator SuccessPulseRoutine(TargetHitZone zone)
+    private IEnumerator SuccessPulseRoutine(
+        TargetHitZone zone,
+        Vector3 localRecoil,
+        float recoilRotation)
     {
         float duration = Mathf.Max(
-            0.05f,
+            0.08f,
             config != null
-                ? config.TargetHitPulseDuration
-                : 0.18f);
+                ? config.TargetImpactRecoilDuration
+                : 0.22f);
 
         float basePeak = config != null
             ? config.TargetHitPulseScale
             : 1.035f;
 
         float peak = zone == TargetHitZone.Bullseye
-            ? basePeak + 0.012f
+            ? basePeak + 0.010f
             : basePeak;
 
-        float firstHalf = duration * 0.42f;
+        // The localized impact VFX now carries the bright flash. Keep the
+        // target tint brief/subtle so the whole target does not become yellow.
+        float flashStrength = zone == TargetHitZone.Bullseye
+            ? 0.22f
+            : 0.13f;
+
+        float attackDuration =
+            duration * 0.26f;
+
         float elapsed = 0f;
 
-        while (elapsed < firstHalf)
+        while (elapsed < attackDuration)
         {
             elapsed += Time.unscaledDeltaTime;
             float t = Mathf.Clamp01(
-                elapsed / Mathf.Max(0.001f, firstHalf));
-            float eased = 1f - (1f - t) * (1f - t);
+                elapsed /
+                Mathf.Max(
+                    0.001f,
+                    attackDuration));
+
+            float eased =
+                1f -
+                (1f - t) *
+                (1f - t);
+
             transform.localScale =
-                hitPulseBaseScale * Mathf.Lerp(1f, peak, eased);
+                hitPulseBaseScale *
+                Mathf.Lerp(
+                    1f,
+                    peak,
+                    eased);
+
+            transform.localPosition =
+                Vector3.Lerp(
+                    hitPulseBaseLocalPosition,
+                    hitPulseBaseLocalPosition +
+                        localRecoil,
+                    eased);
+
+            transform.localRotation =
+                hitPulseBaseLocalRotation *
+                Quaternion.Euler(
+                    0f,
+                    0f,
+                    Mathf.Lerp(
+                        0f,
+                        recoilRotation,
+                        eased));
 
             ApplyHitColor(
                 zone == TargetHitZone.Bullseye
                     ? config.YellowColor
                     : Color.white,
-                Mathf.Lerp(0f, 0.34f, eased));
+                Mathf.Lerp(
+                    0f,
+                    flashStrength,
+                    eased));
 
             yield return null;
         }
 
-        float returnDuration = Mathf.Max(0.001f, duration - firstHalf);
+        float returnDuration =
+            Mathf.Max(
+                0.001f,
+                duration -
+                attackDuration);
+
         elapsed = 0f;
 
         while (elapsed < returnDuration)
         {
             elapsed += Time.unscaledDeltaTime;
-            float t = Mathf.Clamp01(elapsed / returnDuration);
+            float t = Mathf.Clamp01(
+                elapsed /
+                returnDuration);
+
+            float eased =
+                1f -
+                Mathf.Pow(
+                    1f - t,
+                    3f);
+
+            // Tiny damped spring on the physical recoil only. The scale simply
+            // returns cleanly, so the target feels struck rather than rubbery.
+            float spring =
+                (1f - eased) *
+                (1f +
+                 Mathf.Sin(t * Mathf.PI * 2f) *
+                 0.10f *
+                 (1f - t));
+
+            transform.localPosition =
+                hitPulseBaseLocalPosition +
+                localRecoil *
+                spring;
+
+            transform.localRotation =
+                hitPulseBaseLocalRotation *
+                Quaternion.Euler(
+                    0f,
+                    0f,
+                    recoilRotation *
+                    spring);
+
             transform.localScale =
-                hitPulseBaseScale * Mathf.Lerp(peak, 1f, t);
+                hitPulseBaseScale *
+                Mathf.Lerp(
+                    peak,
+                    1f,
+                    eased);
 
             ApplyHitColor(
                 zone == TargetHitZone.Bullseye
                     ? config.YellowColor
                     : Color.white,
-                Mathf.Lerp(0.34f, 0f, t));
+                Mathf.Lerp(
+                    flashStrength,
+                    0f,
+                    eased));
 
             yield return null;
         }
 
-        transform.localScale = hitPulseBaseScale;
+        transform.localScale =
+            hitPulseBaseScale;
+
+        transform.localPosition =
+            hitPulseBaseLocalPosition;
+
+        transform.localRotation =
+            hitPulseBaseLocalRotation;
+
         RestoreHitColors();
         hitPulseRoutine = null;
     }
@@ -523,6 +702,30 @@ public sealed class Target : MonoBehaviour
             incomingDirection);
 
         InvalidHit?.Invoke();
+    }
+
+    /// <summary>
+    /// Side-effect-free query used by final-shot presentation. It intentionally
+    /// reuses the exact same front-face rule as real scoring, so cinematic slow
+    /// motion cannot advertise a hit that this target would reject as a miss.
+    /// </summary>
+    public bool CanScoreApproach(Vector2 incomingDirection)
+    {
+        return
+            !completed &&
+            IsValidFrontApproach(incomingDirection);
+    }
+
+    /// <summary>
+    /// Side-effect-free preview used only to choose presentation intensity.
+    /// Scoring still happens exclusively inside HandleScoringHit.
+    /// </summary>
+    public TargetHitZone PreviewHitZone(Vector2 worldContactPoint)
+    {
+        if (completed)
+            return TargetHitZone.Invalid;
+
+        return EvaluateHitZone(worldContactPoint);
     }
 
     private bool IsValidFrontApproach(Vector2 incomingDirection)
@@ -1009,7 +1212,14 @@ public sealed class Target : MonoBehaviour
             StopCoroutine(hitPulseRoutine);
 
         if (hitPulseBaseScale != Vector3.zero)
-            transform.localScale = hitPulseBaseScale;
+        {
+            transform.localScale =
+                hitPulseBaseScale;
+            transform.localPosition =
+                hitPulseBaseLocalPosition;
+            transform.localRotation =
+                hitPulseBaseLocalRotation;
+        }
 
         RestoreHitColors();
         hitPulseRoutine = null;
