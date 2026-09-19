@@ -22,6 +22,7 @@ public sealed class GameAudioController : MonoBehaviour
     [SerializeField] private AudioClip clayPotSmashClip;
     [SerializeField] private AudioClip glassBottleShatterClip;
     [SerializeField] private AudioClip bonusBellClip;
+    [SerializeField] private AudioClip goldenMedallionClip;
 
     [Header("SFX Mix")]
     [Range(0f, 1f)]
@@ -208,6 +209,10 @@ public sealed class GameAudioController : MonoBehaviour
         bonusBellClip ??=
             Resources.Load<AudioClip>(
                 "Audio/SFX/bonus_bell");
+
+        goldenMedallionClip ??=
+            Resources.Load<AudioClip>(
+                "Audio/SFX/golden_medallion_collect");
     }
 
     private void StartBackgroundMusic(
@@ -477,6 +482,35 @@ public sealed class GameAudioController : MonoBehaviour
             clip,
             impactVolume *
             multiplier);
+    }
+
+    public void PlayCollectible(
+        LevelData.CollectibleStyle style,
+        bool newlyCollected)
+    {
+        AudioClip clip =
+            style switch
+            {
+                LevelData.CollectibleStyle.GoldenMedallion =>
+                    goldenMedallionClip,
+                _ =>
+                    goldenMedallionClip
+            };
+
+        Play(
+            clip,
+            impactVolume *
+            (newlyCollected
+                ? 1.00f
+                : 0.72f));
+
+        if (newlyCollected)
+        {
+            // Briefly open sonic space around the rare collectible chime.
+            DuckMusic(
+                0.46f,
+                0.82f);
+        }
     }
 
     public void PlayLevelComplete()

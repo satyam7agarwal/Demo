@@ -15,6 +15,7 @@ MonoBehaviour:
   LevelNumber: 7
   MaxShots: 3
   ArcherPosition: {x: -5, y: -2}
+  MaxRewardedRicochetMirrors: 0
   Objects:
   - Type: 0
     Position: {x: 4.3, y: 2.6}
@@ -22,27 +23,57 @@ MonoBehaviour:
     Scale: {x: 0.42, y: 0.42}
     Facing: 0
     Style: 0
+    BonusStyle: 0
+    BonusScoreOverride: 0
+    CollectibleStyle: 0
+    CollectibleId: 
   - Type: 1
-    Position: {x: -2.3, y: -0.65}
+    Position: {x: -2.8, y: 0.15}
     Rotation: 90
     Scale: {x: 0.65, y: 0.65}
     Facing: 0
     Style: 0
+    BonusStyle: 0
+    BonusScoreOverride: 0
+    CollectibleStyle: 0
+    CollectibleId: 
   - Type: 1
-    Position: {x: 2, y: 0.3}
+    Position: {x: 2.7, y: 0.3}
     Rotation: 90
     Scale: {x: 0.82, y: 0.82}
     Facing: 0
     Style: 0
+    BonusStyle: 0
+    BonusScoreOverride: 0
+    CollectibleStyle: 0
+    CollectibleId: 
   - Type: 2
     Position: {x: 0, y: -2}
     Rotation: -45
     Scale: {x: 1.0, y: 1.0}
     Facing: 0
     Style: 0
+    BonusStyle: 0
+    BonusScoreOverride: 0
+    CollectibleStyle: 0
+    CollectibleId: 
+  - Type: 4
+    Position: {x: 0.34, y: 1.15}
+    Rotation: 0
+    Scale: {x: 0.36, y: 0.36}
+    Facing: 0
+    Style: 0
+    BonusStyle: 0
+    BonusScoreOverride: 0
+    CollectibleStyle: 0
+    CollectibleId: level_07_medallion_01
   - Type: 2
     Position: {x: 0, y: 2.6}
     Rotation: -45
     Scale: {x: 1.0, y: 1.0}
     Facing: 0
     Style: 0
+    BonusStyle: 0
+    BonusScoreOverride: 0
+    CollectibleStyle: 0
+    CollectibleId: 

@@ -9,6 +9,7 @@ public static class ATSPlayerProgress
     private const string SfxKey = Prefix + "SfxEnabled";
     private const string HapticsKey = Prefix + "HapticsEnabled";
     private const string PerformanceKey = Prefix + "PerformanceMode";
+    private const string CollectiblePrefix = Prefix + "Collectible.";
 
     public static int HighestUnlockedLevel => Mathf.Max(1, PlayerPrefs.GetInt(HighestUnlockedKey, 1));
     public static int LastPlayedLevel => Mathf.Max(1, PlayerPrefs.GetInt(LastPlayedKey, 1));
@@ -42,6 +43,40 @@ public static class ATSPlayerProgress
 
     public static int GetBestStars(int levelNumber) => Mathf.Clamp(PlayerPrefs.GetInt(Prefix + "Stars." + levelNumber, 0), 0, 3);
     public static int GetBestScore(int levelNumber) => Mathf.Max(0, PlayerPrefs.GetInt(Prefix + "Score." + levelNumber, 0));
+
+    public static bool IsCollectibleCollected(
+        string collectibleId)
+    {
+        if (string.IsNullOrWhiteSpace(collectibleId))
+            return false;
+
+        return PlayerPrefs.GetInt(
+            CollectiblePrefix +
+            collectibleId.Trim(),
+            0) != 0;
+    }
+
+    /// <summary>
+    /// Persists a stable collectible ID immediately.
+    /// Returns true only the first time this ID is ever collected.
+    /// </summary>
+    public static bool RecordCollectible(
+        string collectibleId)
+    {
+        if (string.IsNullOrWhiteSpace(collectibleId))
+            return false;
+
+        string key =
+            CollectiblePrefix +
+            collectibleId.Trim();
+
+        if (PlayerPrefs.GetInt(key, 0) != 0)
+            return false;
+
+        PlayerPrefs.SetInt(key, 1);
+        PlayerPrefs.Save();
+        return true;
+    }
 
     public static void RecordLevelStarted(int levelNumber)
     {

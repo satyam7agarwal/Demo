@@ -27,7 +27,13 @@ public sealed class LevelData : ScriptableObject
         Target,
         Wall,
         Mirror,
-        BonusProp
+        BonusProp,
+        Collectible
+    }
+
+    public enum CollectibleStyle
+    {
+        GoldenMedallion = 0
     }
 
     public enum BonusPropStyle
@@ -79,5 +85,14 @@ public sealed class LevelData : ScriptableObject
             "Optional score override for this bonus prop. 0 uses the style default.")]
         [Min(0)]
         public int BonusScoreOverride = 0;
+
+        [Tooltip(
+            "Used only for Collectible objects.")]
+        public CollectibleStyle CollectibleStyle =
+            CollectibleStyle.GoldenMedallion;
+
+        [Tooltip(
+            "Stable persistence ID for this collectible. Do not change this after shipping.")]
+        public string CollectibleId = string.Empty;
     }
 }

@@ -306,11 +306,11 @@ public static class GameUIBuilder
         BuildResultStars(view.ResultCard, config, view);
 
         view.ResultInfo = CreateText("ResultInfo", view.ResultCard, "SCORE  300\nTARGET  300\n1 SHOT USED", 27f, config.SecondaryTextColor, FontStyles.Bold);
-        Place(view.ResultInfo.rectTransform, new Vector2(0.5f, 0.475f), new Vector2(0.5f, 0.475f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(760f, 128f));
+        Place(view.ResultInfo.rectTransform, new Vector2(0.5f, 0.475f), new Vector2(0.5f, 0.475f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(760f, 170f));
         view.ResultInfo.enableAutoSizing = true;
-        view.ResultInfo.fontSizeMin = 20f;
+        view.ResultInfo.fontSizeMin = 18f;
         view.ResultInfo.fontSizeMax = 27f;
-        view.ResultInfo.lineSpacing = 7f;
+        view.ResultInfo.lineSpacing = 5f;
 
         view.ResultPrimaryButton = CreateButton(
             "PrimaryButton", view.ResultCard, "NEXT LEVEL  >>",

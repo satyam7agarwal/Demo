@@ -612,6 +612,54 @@ public sealed class GameUIController : MonoBehaviour
         activeBonusPopups.Clear();
     }
 
+    public void PlayCollectibleFeedback(
+        LevelData.CollectibleStyle style,
+        Vector2 worldPoint,
+        bool newlyCollected)
+    {
+        Color accent =
+            new Color(
+                1f,
+                0.80f,
+                0.18f,
+                1f);
+
+        if (newlyCollected)
+        {
+            // First-ever collection gets a real mastery-reward moment:
+            // large centered banner + restrained full-screen gold bloom.
+            PlayFeedback(
+                "GOLDEN MEDALLION!\nCOLLECTED",
+                accent,
+                new Color(
+                    1f,
+                    0.68f,
+                    0.08f,
+                    0.10f),
+                1.38f,
+                false);
+
+            return;
+        }
+
+        // Already-owned replay pickup remains intentionally quieter.
+        GameObject popup =
+            CreateWorldBonusPopup(
+                "MEDALLION OWNED",
+                accent,
+                worldPoint);
+
+        if (popup == null)
+            return;
+
+        activeBonusPopups.Add(
+            popup);
+
+        StartCoroutine(
+            BonusPopupRoutine(
+                popup));
+    }
+
     public void PlayRicochetFeedback(
         int ricochetCount,
         int uniqueMirrorCount,
@@ -1030,7 +1078,10 @@ public sealed class GameUIController : MonoBehaviour
         bool isBullseye,
         bool isLastLevel,
         int ricochetCount = 0,
-        int uniqueMirrorCount = 0)
+        int uniqueMirrorCount = 0,
+        int medallionCollectedCount = 0,
+        int medallionTotalCount = 0,
+        int newlyCollectedMedallionCount = 0)
     {
         view.ResultPrimaryButton.onClick.RemoveAllListeners();
         view.ResultPrimaryButton.onClick.AddListener(() => { PlayUIClick(); levelManager?.OnResultPrimaryClicked(); });
@@ -1104,10 +1155,31 @@ public sealed class GameUIController : MonoBehaviour
         string shotLine =
             $"{shotsUsed} {shotWord} USED";
 
-        view.ResultInfo.text =
+        string resultDetails =
             $"SCORE  {score:N0}\n" +
             $"{scoreBreakdown}\n" +
             $"{(string.IsNullOrEmpty(masteryLine) ? shotLine : masteryLine + "  •  " + shotLine)}";
+
+        if (medallionTotalCount > 0)
+        {
+            string medallionLabel =
+                medallionTotalCount == 1
+                    ? "GOLDEN MEDALLION"
+                    : "GOLDEN MEDALLIONS";
+
+            resultDetails +=
+                $"\n{medallionLabel}  " +
+                $"{Mathf.Clamp(medallionCollectedCount, 0, medallionTotalCount)} / {medallionTotalCount}";
+
+            if (newlyCollectedMedallionCount > 0)
+            {
+                resultDetails +=
+                    "  •  NEW!";
+            }
+        }
+
+        view.ResultInfo.text =
+            resultDetails;
         view.ResultPrimaryButtonText.text = isLastLevel ? "PLAY AGAIN  >>" : "NEXT LEVEL  >>";
         view.ResultReplayButton.gameObject.SetActive(!isLastLevel);
 

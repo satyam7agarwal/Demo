@@ -29,6 +29,7 @@ public sealed class LevelManager : MonoBehaviour
     private GameAudioController audioController;
     private GameFeelController gameFeel;
     private ATSFrontendController frontend;
+    private ATSMedallionCampaignDecorator medallionCampaignDecorator;
 
     private LevelState currentState = LevelState.Loading;
     private LevelState stateBeforePause = LevelState.Playing;
@@ -47,6 +48,10 @@ public sealed class LevelManager : MonoBehaviour
     private int currentLevelMaxRewardedRicochetMirrors;
     private readonly HashSet<int> currentShotUniqueMirrorIds =
         new HashSet<int>();
+    private readonly HashSet<string> currentLevelMedallionIds =
+        new HashSet<string>();
+    private readonly HashSet<string> currentLevelNewMedallionIds =
+        new HashSet<string>();
 
     private const int FinalApproachRaycastBufferSize = 24;
     private readonly RaycastHit2D[] finalApproachRaycastHits =
@@ -63,6 +68,8 @@ public sealed class LevelManager : MonoBehaviour
     private readonly List<Target> activeTargets = new List<Target>();
     private readonly List<BonusProp> activeBonusProps =
         new List<BonusProp>();
+    private readonly List<GoldenMedallionCollectible> activeCollectibles =
+        new List<GoldenMedallionCollectible>();
     private readonly Stack<ArrowController> arrowPool =
         new Stack<ArrowController>(2);
     private Transform arrowPoolParent;
@@ -79,6 +86,14 @@ public sealed class LevelManager : MonoBehaviour
         gameUI.Initialize(this, config);
         currentLevelIndex = 0;
         frontend = ATSFrontendController.Ensure(this, config, bow, gameUI);
+
+        if (frontend != null)
+        {
+            medallionCampaignDecorator =
+                ATSMedallionCampaignDecorator.Ensure(
+                    frontend.gameObject);
+        }
+
         OpenMainMenu();
     }
 
@@ -355,6 +370,8 @@ public sealed class LevelManager : MonoBehaviour
         currentLevelTargetScore = 0;
         currentLevelStyleScore = 0;
         currentLevelBonusScore = 0;
+        currentLevelMedallionIds.Clear();
+        currentLevelNewMedallionIds.Clear();
         lastTargetHitResult = default;
         currentLevelMaxRewardedRicochetMirrors =
             ResolveCurrentLevelRicochetGoal();
@@ -406,6 +423,33 @@ public sealed class LevelManager : MonoBehaviour
 
                     activeBonusProps.Add(
                         bonusProp);
+                }
+
+                continue;
+            }
+
+            if (data.Type ==
+                LevelData.ObjectType.Collectible)
+            {
+                if (!string.IsNullOrWhiteSpace(
+                        data.CollectibleId))
+                {
+                    currentLevelMedallionIds.Add(
+                        data.CollectibleId.Trim());
+                }
+
+                GoldenMedallionCollectible collectible =
+                    CollectibleFactory.Create(
+                        data,
+                        levelObjectsParent);
+
+                if (collectible != null)
+                {
+                    collectible.Collected +=
+                        OnCollectibleCollected;
+
+                    activeCollectibles.Add(
+                        collectible);
                 }
 
                 continue;
@@ -695,10 +739,99 @@ public sealed class LevelManager : MonoBehaviour
             isBullseye,
             isLastLevel,
             currentShotRicochets,
-            GetRewardedUniqueMirrorCount());
+            GetRewardedUniqueMirrorCount(),
+            GetCurrentLevelCollectedMedallionCount(),
+            currentLevelMedallionIds.Count,
+            currentLevelNewMedallionIds.Count);
 
         audioController?.PlayLevelComplete();
         resolutionRoutine = null;
+    }
+
+    private void OnCollectibleCollected(
+        CollectibleHitResult result)
+    {
+        if (currentState != LevelState.Playing)
+            return;
+
+        string collectibleId =
+            result.CollectibleId != null
+                ? result.CollectibleId.Trim()
+                : string.Empty;
+
+        if (string.IsNullOrWhiteSpace(
+                collectibleId))
+        {
+            return;
+        }
+
+        currentLevelMedallionIds.Add(
+            collectibleId);
+
+        bool newlyCollected =
+            ATSPlayerProgress.RecordCollectible(
+                collectibleId);
+
+        if (newlyCollected)
+        {
+            currentLevelNewMedallionIds.Add(
+                collectibleId);
+        }
+
+        audioController?.PlayCollectible(
+            result.Style,
+            newlyCollected);
+
+        gameUI?.PlayCollectibleFeedback(
+            result.Style,
+            result.WorldPoint,
+            newlyCollected);
+
+        if (newlyCollected)
+        {
+            StartCoroutine(
+                PremiumMedallionHapticSequence());
+        }
+        else
+        {
+            ATSHaptics.Pulse();
+        }
+
+        medallionCampaignDecorator?.RefreshNow();
+
+        Debug.Log(
+            newlyCollected
+                ? $"GOLDEN MEDALLION COLLECTED: {collectibleId}"
+                : $"GOLDEN MEDALLION ALREADY OWNED: {collectibleId}");
+    }
+
+    private IEnumerator PremiumMedallionHapticSequence()
+    {
+        ATSHaptics.Pulse();
+
+        yield return
+            new WaitForSecondsRealtime(
+                0.14f);
+
+        ATSHaptics.Pulse();
+    }
+
+    private int GetCurrentLevelCollectedMedallionCount()
+    {
+        int count = 0;
+
+        foreach (string collectibleId in
+                 currentLevelMedallionIds)
+        {
+            if (ATSPlayerProgress
+                    .IsCollectibleCollected(
+                        collectibleId))
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     private void OnBonusPropHit(
@@ -1106,6 +1239,18 @@ public sealed class LevelManager : MonoBehaviour
         }
 
         activeBonusProps.Clear();
+
+        foreach (GoldenMedallionCollectible collectible in
+                 activeCollectibles)
+        {
+            if (collectible != null)
+            {
+                collectible.Collected -=
+                    OnCollectibleCollected;
+            }
+        }
+
+        activeCollectibles.Clear();
 
         DestroyCurrentArrow();
 
