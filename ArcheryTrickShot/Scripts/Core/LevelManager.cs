@@ -38,6 +38,7 @@ public sealed class LevelManager : MonoBehaviour
     private int currentLevelScore;
     private int currentLevelTargetScore;
     private int currentLevelStyleScore;
+    private int currentLevelBonusScore;
     private TargetHitResult lastTargetHitResult;
     private bool fullTrajectoryPreviewEnabled;
     private int currentShotRicochets;
@@ -60,6 +61,8 @@ public sealed class LevelManager : MonoBehaviour
     private Transform levelObjectsParent;
     private ArrowController currentArrow;
     private readonly List<Target> activeTargets = new List<Target>();
+    private readonly List<BonusProp> activeBonusProps =
+        new List<BonusProp>();
     private readonly Stack<ArrowController> arrowPool =
         new Stack<ArrowController>(2);
     private Transform arrowPoolParent;
@@ -351,6 +354,7 @@ public sealed class LevelManager : MonoBehaviour
         currentLevelScore = 0;
         currentLevelTargetScore = 0;
         currentLevelStyleScore = 0;
+        currentLevelBonusScore = 0;
         lastTargetHitResult = default;
         currentLevelMaxRewardedRicochetMirrors =
             ResolveCurrentLevelRicochetGoal();
@@ -384,6 +388,29 @@ public sealed class LevelManager : MonoBehaviour
 
         foreach (LevelData.LevelObjectData data in currentLevel.Objects)
         {
+            if (data == null)
+                continue;
+
+            if (data.Type ==
+                LevelData.ObjectType.BonusProp)
+            {
+                BonusProp bonusProp =
+                    BonusPropFactory.Create(
+                        data,
+                        levelObjectsParent);
+
+                if (bonusProp != null)
+                {
+                    bonusProp.Hit +=
+                        OnBonusPropHit;
+
+                    activeBonusProps.Add(
+                        bonusProp);
+                }
+
+                continue;
+            }
+
             GameObject prefab = GetPrefab(data.Type);
             if (prefab == null)
             {
@@ -663,6 +690,7 @@ public sealed class LevelManager : MonoBehaviour
             currentLevelScore,
             currentLevelTargetScore,
             currentLevelStyleScore,
+            currentLevelBonusScore,
             hitLabel,
             isBullseye,
             isLastLevel,
@@ -671,6 +699,34 @@ public sealed class LevelManager : MonoBehaviour
 
         audioController?.PlayLevelComplete();
         resolutionRoutine = null;
+    }
+
+    private void OnBonusPropHit(
+        BonusPropHitResult result)
+    {
+        if (currentState != LevelState.Playing)
+            return;
+
+        currentLevelBonusScore +=
+            result.Score;
+
+        currentLevelScore +=
+            result.Score;
+
+        audioController?.PlayBonusProp(
+            result.Style);
+
+        gameUI?.PlayBonusPropFeedback(
+            result.Style,
+            result.Label,
+            result.Score,
+            result.WorldPoint);
+
+        ATSHaptics.Pulse();
+
+        Debug.Log(
+            $"{result.Label} +{result.Score} BONUS " +
+            $"(Level score: {currentLevelScore})");
     }
 
     private void OnArrowReflected(
@@ -1038,6 +1094,18 @@ public sealed class LevelManager : MonoBehaviour
             }
         }
         activeTargets.Clear();
+
+        foreach (BonusProp bonusProp in
+                 activeBonusProps)
+        {
+            if (bonusProp != null)
+            {
+                bonusProp.Hit -=
+                    OnBonusPropHit;
+            }
+        }
+
+        activeBonusProps.Clear();
 
         DestroyCurrentArrow();
 

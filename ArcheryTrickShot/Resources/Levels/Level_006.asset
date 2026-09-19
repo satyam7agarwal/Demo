@@ -15,6 +15,7 @@ MonoBehaviour:
   LevelNumber: 6
   MaxShots: 3
   ArcherPosition: {x: -5, y: -2}
+  MaxRewardedRicochetMirrors: 0
   Objects:
   - Type: 0
     Position: {x: -3.2, y: 3}
@@ -22,21 +23,37 @@ MonoBehaviour:
     Scale: {x: 0.42, y: 0.42}
     Facing: 2
     Style: 0
+    BonusStyle: 0
+    BonusScoreOverride: 0
   - Type: 1
     Position: {x: -4.1, y: 0.5}
     Rotation: 0
     Scale: {x: 0.55, y: 0.55}
     Facing: 0
     Style: 0
+    BonusStyle: 0
+    BonusScoreOverride: 0
   - Type: 2
     Position: {x: 1, y: -2}
     Rotation: -45
     Scale: {x: 1.0, y: 1.0}
     Facing: 0
     Style: 0
+    BonusStyle: 0
+    BonusScoreOverride: 0
+  - Type: 3
+    Position: {x: 1.62, y: 0.5}
+    Rotation: 0
+    Scale: {x: 0.44, y: 0.44}
+    Facing: 0
+    Style: 0
+    BonusStyle: 0
+    BonusScoreOverride: 0
   - Type: 2
     Position: {x: 1, y: 3}
     Rotation: 45
     Scale: {x: 1.0, y: 1.0}
     Facing: 0
     Style: 0
+    BonusStyle: 0
+    BonusScoreOverride: 0

@@ -26,7 +26,15 @@ public sealed class LevelData : ScriptableObject
     {
         Target,
         Wall,
-        Mirror
+        Mirror,
+        BonusProp
+    }
+
+    public enum BonusPropStyle
+    {
+        ClayPot = 0,
+        GlassBottle = 1,
+        Bell = 2
     }
 
     public enum TargetFacing
@@ -61,5 +69,15 @@ public sealed class LevelData : ScriptableObject
         [Tooltip(
             "Used only for Target objects. Existing levels default to Wood.")]
         public TargetStyle Style = TargetStyle.Wood;
+
+        [Tooltip(
+            "Used only for BonusProp objects.")]
+        public BonusPropStyle BonusStyle =
+            BonusPropStyle.ClayPot;
+
+        [Tooltip(
+            "Optional score override for this bonus prop. 0 uses the style default.")]
+        [Min(0)]
+        public int BonusScoreOverride = 0;
     }
 }

@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -17,6 +18,8 @@ public sealed class GameUIController : MonoBehaviour
     private int ricochetGoalSegments;
     private Coroutine shotsPunchRoutine;
     private Coroutine hudRoutine;
+    private readonly List<GameObject> activeBonusPopups =
+        new List<GameObject>();
 
     private void Awake()
     {
@@ -99,6 +102,7 @@ public sealed class GameUIController : MonoBehaviour
     {
         BindButtons();
         StopPresentationCoroutines();
+        ClearBonusPopups();
         HideAllOverlaysImmediate();
 
         view.LevelText.text = $"LEVEL {levelNumber}";
@@ -207,7 +211,10 @@ public sealed class GameUIController : MonoBehaviour
         }
 
         if (!visible)
+        {
+            ClearBonusPopups();
             HideAllOverlaysImmediate();
+        }
     }
 
     public void PlayHitFeedback()
@@ -252,6 +259,357 @@ public sealed class GameUIController : MonoBehaviour
                 flashAlpha),
             cinematic ? 1.35f : 1f,
             cinematic);
+    }
+
+    public void PlayBonusPropFeedback(
+        LevelData.BonusPropStyle style,
+        string label,
+        int score,
+        Vector2 worldPoint)
+    {
+        if (view == null)
+            return;
+
+        Color accent =
+            style switch
+            {
+                LevelData.BonusPropStyle.ClayPot =>
+                    new Color(
+                        1f,
+                        0.50f,
+                        0.16f,
+                        1f),
+                LevelData.BonusPropStyle.GlassBottle =>
+                    new Color(
+                        0.28f,
+                        0.95f,
+                        1f,
+                        1f),
+                LevelData.BonusPropStyle.Bell =>
+                    config.YellowColor,
+                _ =>
+                    config.LimeColor
+            };
+
+        string message =
+            score > 0
+                ? $"{label}  +{score:N0}"
+                : label;
+
+        GameObject popup =
+            CreateWorldBonusPopup(
+                message,
+                accent,
+                worldPoint);
+
+        if (popup == null)
+            return;
+
+        activeBonusPopups.Add(
+            popup);
+
+        StartCoroutine(
+            BonusPopupRoutine(
+                popup));
+    }
+
+    private GameObject CreateWorldBonusPopup(
+        string message,
+        Color accent,
+        Vector2 worldPoint)
+    {
+        Canvas canvas =
+            GetComponent<Canvas>();
+
+        Camera worldCamera =
+            Camera.main;
+
+        if (canvas == null ||
+            worldCamera == null)
+        {
+            return null;
+        }
+
+        RectTransform canvasRect =
+            canvas.transform as RectTransform;
+
+        if (canvasRect == null)
+            return null;
+
+        Vector3 screenPoint =
+            worldCamera.WorldToScreenPoint(
+                worldPoint +
+                Vector2.up * 0.34f);
+
+        Camera uiCamera =
+            canvas.renderMode ==
+            RenderMode.ScreenSpaceOverlay
+                ? null
+                : canvas.worldCamera;
+
+        if (!RectTransformUtility
+                .ScreenPointToLocalPointInRectangle(
+                    canvasRect,
+                    screenPoint,
+                    uiCamera,
+                    out Vector2 localPoint))
+        {
+            return null;
+        }
+
+        GameObject popup =
+            new GameObject(
+                "BonusPropPopup",
+                typeof(RectTransform),
+                typeof(CanvasGroup),
+                typeof(TextMeshProUGUI));
+
+        popup.transform.SetParent(
+            canvasRect,
+            false);
+
+        RectTransform rect =
+            popup.GetComponent<RectTransform>();
+
+        rect.anchorMin =
+            new Vector2(
+                0.5f,
+                0.5f);
+        rect.anchorMax =
+            new Vector2(
+                0.5f,
+                0.5f);
+        rect.pivot =
+            new Vector2(
+                0.5f,
+                0.5f);
+        rect.sizeDelta =
+            new Vector2(
+                330f,
+                70f);
+
+        // Keep the popup local to the hit but inside the readable screen area.
+        Rect canvasBounds =
+            canvasRect.rect;
+
+        localPoint.x =
+            Mathf.Clamp(
+                localPoint.x,
+                canvasBounds.xMin + 175f,
+                canvasBounds.xMax - 175f);
+
+        localPoint.y =
+            Mathf.Clamp(
+                localPoint.y,
+                canvasBounds.yMin + 95f,
+                canvasBounds.yMax - 95f);
+
+        rect.anchoredPosition =
+            localPoint;
+
+        TextMeshProUGUI text =
+            popup.GetComponent<TextMeshProUGUI>();
+
+        text.text =
+            message;
+        text.alignment =
+            TextAlignmentOptions.Center;
+        text.fontStyle =
+            FontStyles.Bold;
+        text.fontSize =
+            30f;
+        text.enableAutoSizing =
+            true;
+        text.fontSizeMin =
+            22f;
+        text.fontSizeMax =
+            30f;
+        text.color =
+            accent;
+        text.raycastTarget =
+            false;
+
+        if (view?.FeedbackText != null &&
+            view.FeedbackText.font != null)
+        {
+            text.font =
+                view.FeedbackText.font;
+        }
+
+        text.outlineColor =
+            new Color(
+                0.035f,
+                0.020f,
+                0.055f,
+                0.95f);
+
+        text.outlineWidth =
+            0.22f;
+
+        CanvasGroup group =
+            popup.GetComponent<CanvasGroup>();
+
+        group.alpha =
+            0f;
+        group.interactable =
+            false;
+        group.blocksRaycasts =
+            false;
+
+        rect.localScale =
+            new Vector3(
+                0.72f,
+                0.72f,
+                1f);
+
+        return popup;
+    }
+
+    private IEnumerator BonusPopupRoutine(
+        GameObject popup)
+    {
+        if (popup == null)
+            yield break;
+
+        RectTransform rect =
+            popup.GetComponent<RectTransform>();
+
+        CanvasGroup group =
+            popup.GetComponent<CanvasGroup>();
+
+        if (rect == null ||
+            group == null)
+        {
+            activeBonusPopups.Remove(
+                popup);
+
+            if (popup != null)
+                Destroy(popup);
+
+            yield break;
+        }
+
+        Vector2 startPosition =
+            rect.anchoredPosition;
+
+        const float enterDuration =
+            0.10f;
+        const float holdDuration =
+            0.34f;
+        const float exitDuration =
+            0.30f;
+        const float riseDistance =
+            72f;
+
+        float elapsed =
+            0f;
+
+        while (elapsed <
+               enterDuration)
+        {
+            elapsed +=
+                Time.unscaledDeltaTime;
+
+            float t =
+                Mathf.Clamp01(
+                    elapsed /
+                    enterDuration);
+
+            group.alpha =
+                t;
+
+            float scale =
+                Mathf.LerpUnclamped(
+                    0.72f,
+                    1.06f,
+                    EaseOutBack(t));
+
+            rect.localScale =
+                new Vector3(
+                    scale,
+                    scale,
+                    1f);
+
+            rect.anchoredPosition =
+                startPosition +
+                Vector2.up *
+                Mathf.Lerp(
+                    0f,
+                    12f,
+                    t);
+
+            yield return null;
+        }
+
+        group.alpha =
+            1f;
+        rect.localScale =
+            Vector3.one;
+
+        yield return
+            new WaitForSecondsRealtime(
+                holdDuration);
+
+        elapsed =
+            0f;
+
+        Vector2 exitStart =
+            rect.anchoredPosition;
+
+        while (elapsed <
+               exitDuration)
+        {
+            elapsed +=
+                Time.unscaledDeltaTime;
+
+            float t =
+                Mathf.Clamp01(
+                    elapsed /
+                    exitDuration);
+
+            group.alpha =
+                1f - t;
+
+            rect.anchoredPosition =
+                exitStart +
+                Vector2.up *
+                Mathf.Lerp(
+                    0f,
+                    riseDistance,
+                    t);
+
+            rect.localScale =
+                Vector3.one *
+                Mathf.Lerp(
+                    1f,
+                    0.92f,
+                    t);
+
+            yield return null;
+        }
+
+        activeBonusPopups.Remove(
+            popup);
+
+        if (popup != null)
+            Destroy(popup);
+    }
+
+    private void ClearBonusPopups()
+    {
+        for (int i =
+                 activeBonusPopups.Count - 1;
+             i >= 0;
+             i--)
+        {
+            GameObject popup =
+                activeBonusPopups[i];
+
+            if (popup != null)
+                Destroy(popup);
+        }
+
+        activeBonusPopups.Clear();
     }
 
     public void PlayRicochetFeedback(
@@ -667,6 +1025,7 @@ public sealed class GameUIController : MonoBehaviour
         int score,
         int targetScore,
         int styleBonus,
+        int bonusScore,
         string hitLabel,
         bool isBullseye,
         bool isLastLevel,
@@ -720,9 +1079,19 @@ public sealed class GameUIController : MonoBehaviour
                 : string.Empty;
 
         string scoreBreakdown =
-            styleBonus > 0
-                ? $"TARGET  {targetScore:N0}  •  STYLE +{styleBonus:N0}"
-                : $"TARGET  {targetScore:N0}";
+            $"TARGET  {targetScore:N0}";
+
+        if (styleBonus > 0)
+        {
+            scoreBreakdown +=
+                $"  •  STYLE +{styleBonus:N0}";
+        }
+
+        if (bonusScore > 0)
+        {
+            scoreBreakdown +=
+                $"  •  BONUS +{bonusScore:N0}";
+        }
 
         string masteryLine =
             !string.IsNullOrEmpty(mirrorLabel) &&
@@ -759,6 +1128,7 @@ public sealed class GameUIController : MonoBehaviour
         ShowComplete(
             shotsUsed,
             maxShots,
+            0,
             0,
             0,
             0,

@@ -19,6 +19,9 @@ public sealed class GameAudioController : MonoBehaviour
     [SerializeField] private AudioClip levelCompleteClip;
     [SerializeField] private AudioClip levelFailedClip;
     [SerializeField] private AudioClip uiClickClip;
+    [SerializeField] private AudioClip clayPotSmashClip;
+    [SerializeField] private AudioClip glassBottleShatterClip;
+    [SerializeField] private AudioClip bonusBellClip;
 
     [Header("SFX Mix")]
     [Range(0f, 1f)]
@@ -193,6 +196,18 @@ public sealed class GameAudioController : MonoBehaviour
         uiClickClip ??=
             Resources.Load<AudioClip>(
                 "Audio/SFX/ui_click");
+
+        clayPotSmashClip ??=
+            Resources.Load<AudioClip>(
+                "Audio/SFX/bonus_pot_smash");
+
+        glassBottleShatterClip ??=
+            Resources.Load<AudioClip>(
+                "Audio/SFX/bonus_glass_shatter");
+
+        bonusBellClip ??=
+            Resources.Load<AudioClip>(
+                "Audio/SFX/bonus_bell");
     }
 
     private void StartBackgroundMusic(
@@ -435,6 +450,33 @@ public sealed class GameAudioController : MonoBehaviour
         Play(
             missClip,
             impactVolume * 0.75f);
+    }
+
+    public void PlayBonusProp(
+        LevelData.BonusPropStyle style)
+    {
+        AudioClip clip =
+            style switch
+            {
+                LevelData.BonusPropStyle.ClayPot =>
+                    clayPotSmashClip,
+                LevelData.BonusPropStyle.GlassBottle =>
+                    glassBottleShatterClip,
+                LevelData.BonusPropStyle.Bell =>
+                    bonusBellClip,
+                _ =>
+                    null
+            };
+
+        float multiplier =
+            style == LevelData.BonusPropStyle.Bell
+                ? 0.78f
+                : 0.86f;
+
+        Play(
+            clip,
+            impactVolume *
+            multiplier);
     }
 
     public void PlayLevelComplete()
