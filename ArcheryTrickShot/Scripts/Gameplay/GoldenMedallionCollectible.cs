@@ -23,11 +23,16 @@ public readonly struct CollectibleHitResult
 /// <summary>
 /// Persistent mastery collectible. It is always a trigger and never changes
 /// arrow velocity, collision, reflection, or the authored trajectory.
+/// The root (and therefore its trigger collider) moves vertically so collecting
+/// it can be an intentional timing challenge.
 /// </summary>
 [RequireComponent(typeof(SpriteRenderer))]
 [RequireComponent(typeof(CircleCollider2D))]
 public sealed class GoldenMedallionCollectible : MonoBehaviour
 {
+    private const float DefaultMoveAmplitude = 0.65f;
+    private const float DefaultMoveSpeed = 1.35f;
+
     public event Action<CollectibleHitResult> Collected;
 
     private SpriteRenderer medallionRenderer;
@@ -39,7 +44,10 @@ public sealed class GoldenMedallionCollectible : MonoBehaviour
     private bool previouslyCollected;
     private Vector3 authoredPosition;
     private Vector3 authoredScale;
-    private float phase;
+    private float visualPhase;
+    private float movementStartTime;
+    private float moveAmplitude;
+    private float moveSpeed;
     private Coroutine collectRoutine;
 
     private static Sprite sparkSprite;
@@ -47,7 +55,9 @@ public sealed class GoldenMedallionCollectible : MonoBehaviour
     public void Configure(
         LevelData.CollectibleStyle collectibleStyle,
         string stableId,
-        bool alreadyCollected)
+        bool alreadyCollected,
+        float configuredMoveAmplitude,
+        float configuredMoveSpeed)
     {
         style = collectibleStyle;
         collectibleId =
@@ -73,7 +83,26 @@ public sealed class GoldenMedallionCollectible : MonoBehaviour
         authoredScale =
             transform.localScale;
 
-        phase =
+        // Existing LevelData assets created before these fields were added can
+        // deserialize them as 0. Keep the new timing gameplay active by using
+        // stable production defaults when that happens.
+        moveAmplitude =
+            configuredMoveAmplitude > 0.0001f
+                ? configuredMoveAmplitude
+                : DefaultMoveAmplitude;
+
+        moveSpeed =
+            configuredMoveSpeed > 0.0001f
+                ? configuredMoveSpeed
+                : DefaultMoveSpeed;
+
+        // Movement starts from the authored centre every time the level loads,
+        // making the timing pattern learnable instead of dependent on global
+        // application time or a random instance ID.
+        movementStartTime =
+            Time.unscaledTime;
+
+        visualPhase =
             Mathf.Abs(
                 GetInstanceID() *
                 0.0137f) %
@@ -103,19 +132,27 @@ public sealed class GoldenMedallionCollectible : MonoBehaviour
         if (consumed)
             return;
 
-        float time =
-            Time.unscaledTime +
-            phase;
+        float movementTime =
+            Time.unscaledTime -
+            movementStartTime;
 
         float hover =
             Mathf.Sin(
-                time * 2.05f) *
-            0.075f;
+                movementTime *
+                moveSpeed) *
+            moveAmplitude;
 
+        // Move the ROOT object so the CircleCollider2D travels with the medal.
+        // The player therefore has to time the shot to the medal's actual
+        // position, not merely its visual sprite.
         transform.position =
             authoredPosition +
             Vector3.up *
             hover;
+
+        float visualTime =
+            Time.unscaledTime +
+            visualPhase;
 
         // Gentle coin-turn illusion without a 3D mesh.
         float xScale =
@@ -123,7 +160,7 @@ public sealed class GoldenMedallionCollectible : MonoBehaviour
                 0.84f,
                 1f,
                 (Mathf.Sin(
-                    time * 1.55f) +
+                    visualTime * 1.55f) +
                  1f) * 0.5f);
 
         transform.localScale =
@@ -138,7 +175,7 @@ public sealed class GoldenMedallionCollectible : MonoBehaviour
                 0f,
                 0f,
                 Mathf.Sin(
-                    time * 1.25f) *
+                    visualTime * 1.25f) *
                 4f);
 
         if (haloRenderer != null)
@@ -156,7 +193,7 @@ public sealed class GoldenMedallionCollectible : MonoBehaviour
             float pulse =
                 pulseBase +
                 (Mathf.Sin(
-                    time * 2.65f) +
+                    visualTime * 2.65f) +
                  1f) *
                 pulseRange;
 

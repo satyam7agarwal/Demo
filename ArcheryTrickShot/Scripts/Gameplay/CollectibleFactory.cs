@@ -113,7 +113,9 @@ public static class CollectibleFactory
             data.CollectibleId,
             ATSPlayerProgress
                 .IsCollectibleCollected(
-                    data.CollectibleId));
+                    data.CollectibleId),
+            data.CollectibleMoveAmplitude,
+            data.CollectibleMoveSpeed);
 
         return collectible;
     }

@@ -4,15 +4,75 @@
   "mapWidth": 1000,
   "mapHeight": 600,
   "nodes": [
-    { "level": 1,  "x": 90,  "y": 455, "title": "FIRST SHOT",       "subtitle": "Find your mark." },
-    { "level": 2,  "x": 205, "y": 390, "title": "STONE GATE",       "subtitle": "Thread the opening." },
-    { "level": 3,  "x": 325, "y": 335, "title": "ANGLE TRIAL",      "subtitle": "Aim beyond the obvious." },
-    { "level": 4,  "x": 445, "y": 235, "title": "RUINED PASS",      "subtitle": "Obstacles enter the path." },
-    { "level": 5,  "x": 565, "y": 175, "title": "MIRROR PASS",      "subtitle": "Use reflections to reach the target." },
-    { "level": 6,  "x": 690, "y": 225, "title": "BROKEN COURT",     "subtitle": "Plan every shot." },
-    { "level": 7,  "x": 805, "y": 315, "title": "ECHOING RUINS",    "subtitle": "Precision under pressure." },
-    { "level": 8,  "x": 720, "y": 430, "title": "SUNKEN ARCH",      "subtitle": "A harder route awaits." },
-    { "level": 9,  "x": 835, "y": 500, "title": "MASTER'S PATH",    "subtitle": "Combine everything you've learned." },
-    { "level": 10, "x": 940, "y": 420, "title": "ANCIENT SENTINEL", "subtitle": "Chapter finale." }
+    {
+      "level": 1,
+      "x": 90,
+      "y": 455,
+      "title": "FIRST SHOT",
+      "subtitle": "A clean line to the target."
+    },
+    {
+      "level": 2,
+      "x": 205,
+      "y": 390,
+      "title": "BLOCKED LINE",
+      "subtitle": "The wall covers the easy line."
+    },
+    {
+      "level": 3,
+      "x": 325,
+      "y": 335,
+      "title": "SHATTER PATH",
+      "subtitle": "Bank low beneath the wall."
+    },
+    {
+      "level": 4,
+      "x": 445,
+      "y": 235,
+      "title": "FIRST BANK",
+      "subtitle": "Use the low mirror to clear the wall."
+    },
+    {
+      "level": 5,
+      "x": 565,
+      "y": 175,
+      "title": "TWIN MIRRORS",
+      "subtitle": "Bounce low, then high."
+    },
+    {
+      "level": 6,
+      "x": 690,
+      "y": 225,
+      "title": "BROKEN COURT",
+      "subtitle": "Thread the walls, then break through."
+    },
+    {
+      "level": 7,
+      "x": 805,
+      "y": 315,
+      "title": "RETURN SHOT",
+      "subtitle": "Go right first. Finish back on the left."
+    },
+    {
+      "level": 8,
+      "x": 720,
+      "y": 430,
+      "title": "ZIG-ZAG",
+      "subtitle": "Low. High. Low. Finish."
+    },
+    {
+      "level": 9,
+      "x": 835,
+      "y": 500,
+      "title": "MASTER LOOP",
+      "subtitle": "Circle the arena and return to the target."
+    },
+    {
+      "level": 10,
+      "x": 940,
+      "y": 420,
+      "title": "ANCIENT SENTINEL",
+      "subtitle": "Chapter finale \u2014 design after L1\u2013L9 are locked."
+    }
   ]
 }

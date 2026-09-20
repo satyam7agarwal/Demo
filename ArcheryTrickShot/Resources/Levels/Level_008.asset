@@ -14,29 +14,56 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LevelData
   LevelNumber: 8
   MaxShots: 3
-  ArcherPosition: {x: -5, y: -2}
+  ArcherPosition: {x: -7.25, y: -1.5}
+  MaxRewardedRicochetMirrors: 3
   Objects:
   - Type: 0
-    Position: {x: 4.2, y: 1.8}
+    Position: {x: 7.78, y: 0.9}
     Rotation: 0
-    Scale: {x: 0.42, y: 0.42}
+    Scale: {x: 0.36, y: 0.36}
     Facing: 0
     Style: 0
+    BonusStyle: 0
+    BonusScoreOverride: 0
+    CollectibleStyle: 0
+    CollectibleId: 
   - Type: 1
-    Position: {x: 2.0, y: 0.0}
+    Position: {x: -1.19, y: -0.6}
     Rotation: 90
-    Scale: {x: 0.78, y: 0.78}
+    Scale: {x: 0.88, y: 0.88}
     Facing: 0
     Style: 0
+    BonusStyle: 0
+    BonusScoreOverride: 0
+    CollectibleStyle: 0
+    CollectibleId: 
   - Type: 2
-    Position: {x: -0.5, y: -2}
-    Rotation: -57.8
-    Scale: {x: 1.0, y: 1.0}
+    Position: {x: -6.3, y: -4.79}
+    Rotation: -90
+    Scale: {x: 1, y: 1}
     Facing: 0
     Style: 0
+    BonusStyle: 0
+    BonusScoreOverride: 0
+    CollectibleStyle: 0
+    CollectibleId: 
   - Type: 2
-    Position: {x: 1.8, y: 2.8}
-    Rotation: -69.1
-    Scale: {x: 1.0, y: 1.0}
+    Position: {x: -1.03, y: 2.96}
+    Rotation: -90
+    Scale: {x: 1, y: 1}
     Facing: 0
     Style: 0
+    BonusStyle: 0
+    BonusScoreOverride: 0
+    CollectibleStyle: 0
+    CollectibleId: 
+  - Type: 2
+    Position: {x: 3.47, y: -4.97}
+    Rotation: -90
+    Scale: {x: 1, y: 1}
+    Facing: 0
+    Style: 0
+    BonusStyle: 0
+    BonusScoreOverride: 0
+    CollectibleStyle: 0
+    CollectibleId: 

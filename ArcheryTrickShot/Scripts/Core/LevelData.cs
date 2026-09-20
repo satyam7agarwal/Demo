@@ -94,5 +94,18 @@ public sealed class LevelData : ScriptableObject
         [Tooltip(
             "Stable persistence ID for this collectible. Do not change this after shipping.")]
         public string CollectibleId = string.Empty;
+
+        [Tooltip(
+            "Used only for Collectible objects. Vertical travel from the authored " +
+            "center position. 0 uses the runtime default of 0.65 world units.")]
+        [Min(0f)]
+        public float CollectibleMoveAmplitude = 0.65f;
+
+        [Tooltip(
+            "Used only for Collectible objects. Vertical movement angular speed. " +
+            "0 uses the runtime default of 1.35. A value of 1.35 gives roughly a " +
+            "4.65 second full up/down cycle.")]
+        [Min(0f)]
+        public float CollectibleMoveSpeed = 1.35f;
     }
 }

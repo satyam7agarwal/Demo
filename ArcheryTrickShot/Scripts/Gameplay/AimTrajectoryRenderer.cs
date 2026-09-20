@@ -461,6 +461,16 @@ public sealed class AimTrajectoryRenderer : MonoBehaviour
             if (collider.GetComponentInParent<BowController>() != null)
                 continue;
 
+            // Bonus props and collectibles are intentionally pass-through
+            // gameplay triggers. They may react to the real arrow, but they
+            // never stop or redirect it, so FULL PATH must continue through
+            // them exactly as the real projectile does.
+            if (collider.GetComponentInParent<BonusProp>() != null)
+                continue;
+
+            if (collider.GetComponentInParent<GoldenMedallionCollectible>() != null)
+                continue;
+
             if (collider == previousMirrorCollider &&
                 hit.distance <= previousMirrorIgnoreDistance)
             {

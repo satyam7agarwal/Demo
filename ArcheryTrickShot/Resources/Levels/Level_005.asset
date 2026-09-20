@@ -14,23 +14,46 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LevelData
   LevelNumber: 5
   MaxShots: 3
-  ArcherPosition: {x: -5, y: -2}
+  ArcherPosition: {x: -6.97, y: -1.77}
+  MaxRewardedRicochetMirrors: 2
   Objects:
   - Type: 0
-    Position: {x: 4, y: -2.8}
+    Position: {x: 7.68, y: 1.05}
     Rotation: 0
-    Scale: {x: 0.42, y: 0.42}
+    Scale: {x: 0.38, y: 0.38}
     Facing: 0
     Style: 0
+    BonusStyle: 0
+    BonusScoreOverride: 0
+    CollectibleStyle: 0
+    CollectibleId: 
   - Type: 1
-    Position: {x: -0.5, y: -2.4}
+    Position: {x: 2.83, y: -0.64}
     Rotation: 90
-    Scale: {x: 0.82, y: 0.82}
+    Scale: {x: 0.88, y: 0.88}
     Facing: 0
     Style: 0
+    BonusStyle: 0
+    BonusScoreOverride: 0
+    CollectibleStyle: 0
+    CollectibleId: 
   - Type: 2
-    Position: {x: 0.8, y: 1.2}
-    Rotation: 78.8
-    Scale: {x: 1.0, y: 1.0}
+    Position: {x: -4.59, y: -5.27}
+    Rotation: -90
+    Scale: {x: 1, y: 1}
     Facing: 0
     Style: 0
+    BonusStyle: 0
+    BonusScoreOverride: 0
+    CollectibleStyle: 0
+    CollectibleId: 
+  - Type: 2
+    Position: {x: 3.4, y: 4.3}
+    Rotation: -90
+    Scale: {x: 1, y: 1.4}
+    Facing: 0
+    Style: 0
+    BonusStyle: 0
+    BonusScoreOverride: 0
+    CollectibleStyle: 0
+    CollectibleId: 
