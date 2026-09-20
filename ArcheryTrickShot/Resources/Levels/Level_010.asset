@@ -13,36 +13,67 @@ MonoBehaviour:
   m_Name: Level_010
   m_EditorClassIdentifier: Assembly-CSharp::LevelData
   LevelNumber: 10
-  MaxShots: 3
-  ArcherPosition: {x: -5, y: -2}
-  Objects:
-  - Type: 0
-    Position: {x: 4.5, y: -0.5}
+  MaxShots: 4
+  ThreeStarShotLimit: 2
+  ArcherPosition: {x: -7.2, y: -2.4}
+  MaxRewardedRicochetMirrors: 3
+  Targets:
+  - Position: {x: 8, y: 2.76}
     Rotation: 0
-    Scale: {x: 0.45, y: 0.45}
+    Scale: {x: 0.36, y: 0.36}
     Facing: 0
-    Style: 0
-  - Type: 1
-    Position: {x: 1.5, y: -0.9}
+    Style: 1
+  Walls:
+  - Position: {x: -1.1, y: -2.62}
     Rotation: 90
-    Scale: {x: 0.5, y: 0.5}
-    Facing: 0
+    Scale: {x: 1.5, y: 0.88} 
+  Mirrors:
+  - Position: {x: -4.94, y: 2.62}
+    Rotation: -90
+    Scale: {x: 1, y: 1.15}
+  - Position: {x: -3, y: 0.33}
+    Rotation: 90
+    Scale: {x: 1, y: 1.15}
+  - Position: {x: -0.67, y: 2.57}
+    Rotation: -90
+    Scale: {x: 1, y: 1.15}
+  - Position: {x: 2.79, y: -2.3}
+    Rotation: 90
+    Scale: {x: 1, y: 1.15}  
+  BonusProps:
+  - Position: {x: -2.69, y: 3.4}
+    Rotation: 0
+    Scale: {x: 0.42, y: 0.42}
+    Style: 1
+    ScoreOverride: 0
+  Collectibles:
+  - Position: {x: 4, y: 1}
+    Rotation: 0
+    Scale: {x: 0.34, y: 0.34}
     Style: 0
-  - Type: 2
-    Position: {x: -1, y: -2}
-    Rotation: -45
-    Scale: {x: 1.0, y: 1.0}
-    Facing: 0
-    Style: 0
-  - Type: 2
-    Position: {x: -1, y: 3}
-    Rotation: -45
-    Scale: {x: 1.0, y: 1.0}
-    Facing: 0
-    Style: 0
-  - Type: 2
-    Position: {x: 3, y: 3}
-    Rotation: 56.6
-    Scale: {x: 1.0, y: 1.0}
-    Facing: 0
-    Style: 0
+    CollectibleId: level_10_medallion_01
+    MoveAmplitude: 0.9
+    MoveSpeed: 1.1
+  Gates:
+  - Position: {x: 5.81, y: 2.55}
+    Rotation: 0
+    Scale: {x: 0.72, y: 0.72}
+    UnlockGroupId: final_target
+    OpenOffset: {x: 0, y: 2.55}
+    OpenDuration: 0.72
+  - Position: {x: 5.81, y: 1.3}
+    Rotation: 0
+    Scale: {x: 0.72, y: 0.72}
+    UnlockGroupId: final_target
+    OpenOffset: {x: 0, y: -2.55}
+    OpenDuration: 0.72
+  FlyingBirds:
+  - Position: {x: -1.7, y: 4.3}
+    Rotation: 0
+    Scale: {x: 0.72, y: 0.72}
+    UnlockGroupId: final_target
+    PatrolWidth: 4.6
+    PatrolSpeed: 1.15
+    BobAmplitude: 0.28
+    BobSpeed: 2.1
+    ConsumeArrowOnHit: 1

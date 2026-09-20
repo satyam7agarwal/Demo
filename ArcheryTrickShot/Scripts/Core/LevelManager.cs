@@ -70,6 +70,18 @@ public sealed class LevelManager : MonoBehaviour
         new List<BonusProp>();
     private readonly List<GoldenMedallionCollectible> activeCollectibles =
         new List<GoldenMedallionCollectible>();
+    private readonly List<TargetGateSegment> activeGateSegments =
+        new List<TargetGateSegment>();
+    private readonly List<FlyingBirdTarget> activeFlyingBirds =
+        new List<FlyingBirdTarget>();
+
+    private readonly Dictionary<string, List<TargetGateSegment>>
+        activeGatesByUnlockGroup =
+            new Dictionary<string, List<TargetGateSegment>>();
+
+    private readonly Dictionary<string, int>
+        remainingBirdObjectivesByUnlockGroup =
+            new Dictionary<string, int>();
     private readonly Stack<ArrowController> arrowPool =
         new Stack<ArrowController>(2);
     private Transform arrowPoolParent;
@@ -400,103 +412,382 @@ public sealed class LevelManager : MonoBehaviour
 
     private void SpawnLevelObjects()
     {
-        if (currentLevel.Objects == null)
+        SpawnTargets();
+        SpawnWalls();
+        SpawnMirrors();
+        SpawnBonusProps();
+        SpawnCollectibles();
+        SpawnGates();
+        SpawnFlyingBirds();
+    }
+
+    private void SpawnTargets()
+    {
+        if (currentLevel.Targets == null)
             return;
 
-        foreach (LevelData.LevelObjectData data in currentLevel.Objects)
+        foreach (LevelData.TargetData data in
+                 currentLevel.Targets)
+        {
+            if (data == null ||
+                targetPrefab == null)
+            {
+                continue;
+            }
+
+            GameObject instance =
+                InstantiateLevelPrefab(
+                    targetPrefab,
+                    data.Position,
+                    data.Rotation,
+                    data.Scale);
+
+            if (instance == null ||
+                !instance.TryGetComponent(
+                    out Target target))
+            {
+                continue;
+            }
+
+            RegisterTarget(
+                target,
+                data.Style,
+                data.Facing);
+        }
+    }
+
+    private void SpawnWalls()
+    {
+        if (currentLevel.Walls == null)
+            return;
+
+        foreach (LevelData.WallData data in
+                 currentLevel.Walls)
+        {
+            if (data == null ||
+                wallPrefab == null)
+            {
+                continue;
+            }
+
+            GameObject instance =
+                InstantiateLevelPrefab(
+                    wallPrefab,
+                    data.Position,
+                    data.Rotation,
+                    data.Scale);
+
+            ApplyWallPresentation(
+                instance);
+        }
+    }
+
+    private void SpawnMirrors()
+    {
+        if (currentLevel.Mirrors == null)
+            return;
+
+        foreach (LevelData.MirrorData data in
+                 currentLevel.Mirrors)
+        {
+            if (data == null ||
+                mirrorPrefab == null)
+            {
+                continue;
+            }
+
+            InstantiateLevelPrefab(
+                mirrorPrefab,
+                data.Position,
+                data.Rotation,
+                data.Scale);
+        }
+    }
+
+    private void SpawnBonusProps()
+    {
+        if (currentLevel.BonusProps == null)
+            return;
+
+        foreach (LevelData.BonusPropData data in
+                 currentLevel.BonusProps)
         {
             if (data == null)
                 continue;
 
-            if (data.Type ==
-                LevelData.ObjectType.BonusProp)
-            {
-                BonusProp bonusProp =
-                    BonusPropFactory.Create(
-                        data,
-                        levelObjectsParent);
+            BonusProp bonusProp =
+                BonusPropFactory.Create(
+                    data,
+                    levelObjectsParent);
 
-                if (bonusProp != null)
-                {
-                    bonusProp.Hit +=
-                        OnBonusPropHit;
+            RegisterBonusProp(
+                bonusProp);
+        }
+    }
 
-                    activeBonusProps.Add(
-                        bonusProp);
-                }
+    private void SpawnCollectibles()
+    {
+        if (currentLevel.Collectibles == null)
+            return;
 
+        foreach (LevelData.CollectibleData data in
+                 currentLevel.Collectibles)
+        {
+            if (data == null)
                 continue;
-            }
 
-            if (data.Type ==
-                LevelData.ObjectType.Collectible)
-            {
-                if (!string.IsNullOrWhiteSpace(
-                        data.CollectibleId))
-                {
-                    currentLevelMedallionIds.Add(
-                        data.CollectibleId.Trim());
-                }
+            RegisterCollectibleId(
+                data.CollectibleId);
 
-                GoldenMedallionCollectible collectible =
-                    CollectibleFactory.Create(
-                        data,
-                        levelObjectsParent);
+            GoldenMedallionCollectible collectible =
+                CollectibleFactory.Create(
+                    data,
+                    levelObjectsParent);
 
-                if (collectible != null)
-                {
-                    collectible.Collected +=
-                        OnCollectibleCollected;
+            RegisterCollectible(
+                collectible);
+        }
+    }
 
-                    activeCollectibles.Add(
-                        collectible);
-                }
+    private void SpawnGates()
+    {
+        if (currentLevel.Gates == null ||
+            wallPrefab == null)
+        {
+            return;
+        }
 
+        foreach (LevelData.GateData data in
+                 currentLevel.Gates)
+        {
+            if (data == null)
                 continue;
-            }
 
-            GameObject prefab = GetPrefab(data.Type);
-            if (prefab == null)
-            {
-                Debug.LogWarning($"LevelManager: No prefab is available for {data.Type}. Skipping object.");
+            GameObject instance =
+                InstantiateLevelPrefab(
+                    wallPrefab,
+                    data.Position,
+                    data.Rotation,
+                    data.Scale);
+
+            if (instance == null)
                 continue;
+
+            instance.name =
+                "TargetGate";
+
+            ApplyWallPresentation(
+                instance);
+
+            TargetGateSegment gate =
+                instance.GetComponent<TargetGateSegment>();
+
+            if (gate == null)
+            {
+                gate =
+                    instance.AddComponent<TargetGateSegment>();
             }
 
-            GameObject instance = Instantiate(
-                prefab,
-                new Vector3(data.Position.x, data.Position.y, 0f),
-                Quaternion.Euler(0f, 0f, data.Rotation),
-                levelObjectsParent
-            );
+            gate.Configure(
+                data.OpenOffset,
+                data.OpenDuration);
 
-            instance.transform.localScale = new Vector3(data.Scale.x, data.Scale.y, 1f);
+            activeGateSegments.Add(
+                gate);
 
-            if (data.Type == LevelData.ObjectType.Wall)
+            string unlockGroup =
+                NormalizeUnlockGroupId(
+                    data.UnlockGroupId);
+
+            if (!activeGatesByUnlockGroup.TryGetValue(
+                    unlockGroup,
+                    out List<TargetGateSegment> gates))
             {
-                Wall wall = instance.GetComponent<Wall>();
-                if (wall == null)
-                    wall = instance.AddComponent<Wall>();
+                gates =
+                    new List<TargetGateSegment>();
 
-                wall.ApplyPresentation();
+                activeGatesByUnlockGroup.Add(
+                    unlockGroup,
+                    gates);
             }
 
-            if (data.Type == LevelData.ObjectType.Target && instance.TryGetComponent(out Target target))
-            {
-                target.ScoredHit += OnTargetScoredHit;
-                target.Hit += OnTargetHit;
-                target.InvalidHit += OnTargetInvalidHit;
-                activeTargets.Add(target);
+            gates.Add(
+                gate);
+        }
+    }
 
-                if (instance.TryGetComponent(
-                        out TargetVisualFacing visualFacing))
-                {
-                    visualFacing.ApplyVisual(
-                        data.Style,
-                        data.Facing,
-                        currentLevel.ArcherPosition.x);
-                }
+    private void SpawnFlyingBirds()
+    {
+        if (currentLevel.FlyingBirds == null)
+            return;
+
+        foreach (LevelData.FlyingBirdData data in
+                 currentLevel.FlyingBirds)
+        {
+            if (data == null)
+                continue;
+
+            FlyingBirdTarget bird =
+                FlyingBirdFactory.Create(
+                    data,
+                    levelObjectsParent);
+
+            if (bird == null)
+                continue;
+
+            bird.Hit +=
+                OnFlyingBirdHit;
+
+            activeFlyingBirds.Add(
+                bird);
+
+            string unlockGroup =
+                NormalizeUnlockGroupId(
+                    data.UnlockGroupId);
+
+            if (remainingBirdObjectivesByUnlockGroup
+                    .TryGetValue(
+                        unlockGroup,
+                        out int currentCount))
+            {
+                remainingBirdObjectivesByUnlockGroup[
+                    unlockGroup] =
+                    currentCount + 1;
+            }
+            else
+            {
+                remainingBirdObjectivesByUnlockGroup.Add(
+                    unlockGroup,
+                    1);
             }
         }
+    }
+
+    private GameObject InstantiateLevelPrefab(
+        GameObject prefab,
+        Vector2 position,
+        float rotation,
+        Vector2 scale)
+    {
+        if (prefab == null)
+            return null;
+
+        GameObject instance =
+            Instantiate(
+                prefab,
+                new Vector3(
+                    position.x,
+                    position.y,
+                    0f),
+                Quaternion.Euler(
+                    0f,
+                    0f,
+                    rotation),
+                levelObjectsParent);
+
+        instance.transform.localScale =
+            new Vector3(
+                scale.x,
+                scale.y,
+                1f);
+
+        return instance;
+    }
+
+    private void ApplyWallPresentation(
+        GameObject instance)
+    {
+        if (instance == null)
+            return;
+
+        Wall wall =
+            instance.GetComponent<Wall>();
+
+        if (wall == null)
+        {
+            wall =
+                instance.AddComponent<Wall>();
+        }
+
+        wall.ApplyPresentation();
+    }
+
+    private void RegisterTarget(
+        Target target,
+        LevelData.TargetStyle style,
+        LevelData.TargetFacing facing)
+    {
+        if (target == null)
+            return;
+
+        target.ScoredHit +=
+            OnTargetScoredHit;
+
+        target.Hit +=
+            OnTargetHit;
+
+        target.InvalidHit +=
+            OnTargetInvalidHit;
+
+        activeTargets.Add(
+            target);
+
+        if (target.TryGetComponent(
+                out TargetVisualFacing visualFacing))
+        {
+            visualFacing.ApplyVisual(
+                style,
+                facing,
+                currentLevel.ArcherPosition.x);
+        }
+    }
+
+    private void RegisterBonusProp(
+        BonusProp bonusProp)
+    {
+        if (bonusProp == null)
+            return;
+
+        bonusProp.Hit +=
+            OnBonusPropHit;
+
+        activeBonusProps.Add(
+            bonusProp);
+    }
+
+    private void RegisterCollectibleId(
+        string collectibleId)
+    {
+        if (string.IsNullOrWhiteSpace(
+                collectibleId))
+        {
+            return;
+        }
+
+        currentLevelMedallionIds.Add(
+            collectibleId.Trim());
+    }
+
+    private void RegisterCollectible(
+        GoldenMedallionCollectible collectible)
+    {
+        if (collectible == null)
+            return;
+
+        collectible.Collected +=
+            OnCollectibleCollected;
+
+        activeCollectibles.Add(
+            collectible);
+    }
+
+    private static string NormalizeUnlockGroupId(
+        string unlockGroupId)
+    {
+        return string.IsNullOrWhiteSpace(
+                unlockGroupId)
+            ? "default"
+            : unlockGroupId.Trim();
     }
 
     private void CreateArrow()
@@ -546,21 +837,6 @@ public sealed class LevelManager : MonoBehaviour
         bow.SetArrow(currentArrow);
         bow.SetInputEnabled(true);
         gameUI?.SetAimHintVisible(true);
-    }
-
-    private GameObject GetPrefab(LevelData.ObjectType type)
-    {
-        switch (type)
-        {
-            case LevelData.ObjectType.Target:
-                return targetPrefab;
-            case LevelData.ObjectType.Wall:
-                return wallPrefab;
-            case LevelData.ObjectType.Mirror:
-                return mirrorPrefab;
-            default:
-                return null;
-        }
     }
 
     private void OnShot()
@@ -721,7 +997,15 @@ public sealed class LevelManager : MonoBehaviour
                 ? "TARGET HIT!"
                 : lastTargetHitResult.Label;
 
-        int earnedStars = CalculateStars(shotsUsed, currentLevel.MaxShots);
+        int earnedStars = CalculateStars(
+            shotsUsed,
+            currentLevel.MaxShots,
+            currentLevel.ThreeStarShotLimit > 0
+                ? currentLevel.ThreeStarShotLimit
+                : 1,
+            currentLevelMaxRewardedRicochetMirrors,
+            GetRewardedUniqueMirrorCount());
+
         ATSPlayerProgress.RecordCompletion(
             currentLevel.LevelNumber,
             earnedStars,
@@ -912,6 +1196,114 @@ public sealed class LevelManager : MonoBehaviour
             newUniqueMirror);
     }
 
+    private void OnFlyingBirdHit(
+        FlyingBirdHitResult result)
+    {
+        if (currentState != LevelState.Playing)
+            return;
+
+        string unlockGroup =
+            NormalizeUnlockGroupId(
+                result.UnlockGroupId);
+
+        int remaining = 0;
+
+        if (remainingBirdObjectivesByUnlockGroup
+                .TryGetValue(
+                    unlockGroup,
+                    out int currentCount))
+        {
+            remaining =
+                Mathf.Max(
+                    0,
+                    currentCount - 1);
+
+            remainingBirdObjectivesByUnlockGroup[
+                unlockGroup] =
+                remaining;
+        }
+
+        bool gatesUnlocked =
+            remaining <= 0;
+
+        if (gatesUnlocked &&
+            activeGatesByUnlockGroup.TryGetValue(
+                unlockGroup,
+                out List<TargetGateSegment> gates))
+        {
+            for (int i = 0;
+                 i < gates.Count;
+                 i++)
+            {
+                TargetGateSegment gate =
+                    gates[i];
+
+                if (gate != null)
+                    gate.Open();
+            }
+        }
+
+        gameUI?.PlayHitFeedback(
+            gatesUnlocked
+                ? "GATES OPEN!"
+                : "GUARDIAN HIT!",
+            0,
+            false,
+            false);
+
+        audioController?.PlayTargetHit();
+        ATSHaptics.Pulse();
+
+        if (!result.ConsumesArrow)
+            return;
+
+        currentState =
+            LevelState.ResolvingShot;
+
+        bow.SetInputEnabled(false);
+        currentArrow?.Stop();
+
+        StopResolutionRoutine();
+
+        resolutionRoutine =
+            StartCoroutine(
+                GuardianUnlockSequence());
+    }
+
+    private IEnumerator GuardianUnlockSequence()
+    {
+        // Let the bird reaction and the stone doors visibly finish before the
+        // second-phase arrow is handed back to the player.
+        yield return
+            new WaitForSecondsRealtime(
+                0.82f);
+
+        DestroyCurrentArrow();
+
+        int shotsRemaining =
+            Mathf.Max(
+                0,
+                currentLevel.MaxShots -
+                shotsUsed);
+
+        if (shotsRemaining <= 0)
+        {
+            currentState =
+                LevelState.Failed;
+
+            gameUI.ShowFailed();
+            audioController?.PlayLevelFailed();
+            resolutionRoutine = null;
+            yield break;
+        }
+
+        currentState =
+            LevelState.Playing;
+
+        CreateArrow();
+        resolutionRoutine = null;
+    }
+
     private void OnSolidCollision()
     {
         audioController?.PlayWallHit();
@@ -1048,8 +1440,6 @@ public sealed class LevelManager : MonoBehaviour
         if (globalCap <= 0)
             return 0;
 
-        // Explicit authoring wins. This is important for future levels that
-        // contain decorative/optional/unreachable mirrors.
         if (currentLevel.MaxRewardedRicochetMirrors > 0)
         {
             return Mathf.Clamp(
@@ -1058,26 +1448,10 @@ public sealed class LevelManager : MonoBehaviour
                 globalCap);
         }
 
-        // Existing levels need no manual edits: auto-detect their mirror count.
-        int authoredMirrorCount = 0;
-
-        if (currentLevel.Objects != null)
-        {
-            for (int i = 0;
-                 i < currentLevel.Objects.Length;
-                 i++)
-            {
-                LevelData.LevelObjectData data =
-                    currentLevel.Objects[i];
-
-                if (data != null &&
-                    data.Type ==
-                        LevelData.ObjectType.Mirror)
-                {
-                    authoredMirrorCount++;
-                }
-            }
-        }
+        int authoredMirrorCount =
+            currentLevel.Mirrors != null
+                ? currentLevel.Mirrors.Length
+                : 0;
 
         return Mathf.Clamp(
             authoredMirrorCount,
@@ -1130,13 +1504,28 @@ public sealed class LevelManager : MonoBehaviour
         };
     }
 
-    private static int CalculateStars(int usedShots, int maxShots)
+    private static int CalculateStars(
+        int usedShots,
+        int maxShots,
+        int threeStarShotLimit,
+        int requiredUniqueMirrors,
+        int usedUniqueMirrors)
     {
-        if (usedShots <= 1)
-            return 3;
-        if (usedShots < maxShots)
+        // Completion on the final allowed arrow earns one star.
+        if (usedShots >= maxShots)
+            return 1;
+
+        // The perfect-shot budget is fully data-driven per level.
+        if (usedShots > threeStarShotLimit)
             return 2;
-        return 1;
+
+        bool masteryRouteSatisfied =
+            requiredUniqueMirrors <= 0 ||
+            usedUniqueMirrors >= requiredUniqueMirrors;
+
+        return masteryRouteSatisfied
+            ? 3
+            : 2;
     }
 
     public void ToggleFullTrajectoryPreview()
@@ -1251,6 +1640,21 @@ public sealed class LevelManager : MonoBehaviour
         }
 
         activeCollectibles.Clear();
+
+        foreach (FlyingBirdTarget bird in
+                 activeFlyingBirds)
+        {
+            if (bird != null)
+            {
+                bird.Hit -=
+                    OnFlyingBirdHit;
+            }
+        }
+
+        activeFlyingBirds.Clear();
+        activeGateSegments.Clear();
+        activeGatesByUnlockGroup.Clear();
+        remainingBirdObjectivesByUnlockGroup.Clear();
 
         DestroyCurrentArrow();
 

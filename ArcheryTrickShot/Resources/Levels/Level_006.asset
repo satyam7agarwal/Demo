@@ -14,56 +14,32 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LevelData
   LevelNumber: 6
   MaxShots: 3
+  ThreeStarShotLimit: 1
   ArcherPosition: {x: -7.02, y: -3}
   MaxRewardedRicochetMirrors: 1
-  Objects:
-  - Type: 0
-    Position: {x: 8.11, y: 0.99}
+  Targets:
+  - Position: {x: 8.11, y: 0.99}
     Rotation: 0
     Scale: {x: 0.38, y: 0.38}
     Facing: 0
     Style: 0
-    BonusStyle: 0
-    BonusScoreOverride: 0
-    CollectibleStyle: 0
-    CollectibleId: 
-  - Type: 1
-    Position: {x: -3.19, y: 2.93}
+  Walls:
+  - Position: {x: -3.19, y: 2.93}
     Rotation: 90
     Scale: {x: 0.88, y: 0.88}
-    Facing: 0
-    Style: 0
-    BonusStyle: 0
-    BonusScoreOverride: 0
-    CollectibleStyle: 0
-    CollectibleId: 
-  - Type: 1
-    Position: {x: -1.73, y: -1.3}
+  - Position: {x: -1.73, y: -1.3}
     Rotation: 90
     Scale: {x: 0.88, y: 0.88}
-    Facing: 0
-    Style: 0
-    BonusStyle: 0
-    BonusScoreOverride: 0
-    CollectibleStyle: 0
-    CollectibleId: 
-  - Type: 2
-    Position: {x: 2.6, y: 4.52}
+  Mirrors:
+  - Position: {x: 2.6, y: 4.52}
     Rotation: -90
     Scale: {x: 1, y: 1.5}
-    Facing: 0
-    Style: 0
-    BonusStyle: 0
-    BonusScoreOverride: 0
-    CollectibleStyle: 0
-    CollectibleId: 
-  - Type: 3
-    Position: {x: 5.58, y: 2.49}
+  BonusProps:
+  - Position: {x: 5.58, y: 2.49}
     Rotation: 0
     Scale: {x: 0.5, y: 0.5}
-    Facing: 0
-    Style: 0
-    BonusStyle: 1
-    BonusScoreOverride: 0
-    CollectibleStyle: 0
-    CollectibleId: 
+    Style: 1
+    ScoreOverride: 0
+  Collectibles: []
+  Gates: []
+  FlyingBirds: []

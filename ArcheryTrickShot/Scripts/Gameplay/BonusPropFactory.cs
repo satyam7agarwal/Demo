@@ -1,13 +1,12 @@
 using UnityEngine;
 
 /// <summary>
-/// Runtime assembly only. Visual art is authored/imported under
-/// Resources/Art/BonusProps; this factory avoids per-level prefab/Inspector work.
+/// Builds authored bonus-prop art from typed LevelData.
 /// </summary>
 public static class BonusPropFactory
 {
     public static BonusProp Create(
-        LevelData.LevelObjectData data,
+        LevelData.BonusPropData data,
         Transform parent)
     {
         if (data == null)
@@ -15,7 +14,7 @@ public static class BonusPropFactory
 
         string resourcePath =
             GetSpriteResourcePath(
-                data.BonusStyle);
+                data.Style);
 
         Sprite sprite =
             Resources.Load<Sprite>(
@@ -30,12 +29,8 @@ public static class BonusPropFactory
 
         GameObject propObject =
             new GameObject(
-                $"BonusProp_{data.BonusStyle}");
+                $"BonusProp_{data.Style}");
 
-        // LevelData positions are authored in WORLD space, exactly like
-        // Target/Wall/Mirror objects spawned by LevelManager. v1/v2 used
-        // localPosition after parenting, which incorrectly added the
-        // LevelManager/LevelObjects parent offset.
         propObject.transform.SetParent(
             parent,
             true);
@@ -52,9 +47,6 @@ public static class BonusPropFactory
                 0f,
                 data.Rotation);
 
-        // Match LevelManager's authored-scale semantics. Because the current
-        // LevelObjects parent is scale 1 this is visually identical today,
-        // while remaining correct if parent transforms change later.
         Vector3 parentLossyScale =
             parent != null
                 ? parent.lossyScale
@@ -95,14 +87,14 @@ public static class BonusPropFactory
         ApplyColliderShape(
             collider,
             sprite,
-            data.BonusStyle);
+            data.Style);
 
         BonusProp prop =
             propObject.AddComponent<BonusProp>();
 
         prop.Configure(
-            data.BonusStyle,
-            data.BonusScoreOverride);
+            data.Style,
+            data.ScoreOverride);
 
         return prop;
     }

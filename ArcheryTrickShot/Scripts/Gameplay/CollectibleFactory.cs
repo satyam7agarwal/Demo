@@ -3,7 +3,7 @@ using UnityEngine;
 public static class CollectibleFactory
 {
     public static GoldenMedallionCollectible Create(
-        LevelData.LevelObjectData data,
+        LevelData.CollectibleData data,
         Transform parent)
     {
         if (data == null)
@@ -19,7 +19,7 @@ public static class CollectibleFactory
 
         string resourcePath =
             GetSpriteResourcePath(
-                data.CollectibleStyle);
+                data.Style);
 
         Sprite sprite =
             Resources.Load<Sprite>(
@@ -34,9 +34,8 @@ public static class CollectibleFactory
 
         GameObject collectibleObject =
             new GameObject(
-                $"Collectible_{data.CollectibleStyle}");
+                $"Collectible_{data.Style}");
 
-        // Match LevelManager's world-position authoring semantics.
         collectibleObject.transform.SetParent(
             parent,
             true);
@@ -97,9 +96,6 @@ public static class CollectibleFactory
         collider.isTrigger =
             true;
 
-        // Visual art includes an outer glow/rim. The actual collection zone
-        // intentionally focuses on the central medallion, keeping mastery
-        // routes precise and preventing nearby safe paths from auto-collecting.
         collider.radius =
             sprite.bounds.extents.x *
             0.37f;
@@ -109,13 +105,13 @@ public static class CollectibleFactory
                 .AddComponent<GoldenMedallionCollectible>();
 
         collectible.Configure(
-            data.CollectibleStyle,
+            data.Style,
             data.CollectibleId,
             ATSPlayerProgress
                 .IsCollectibleCollected(
                     data.CollectibleId),
-            data.CollectibleMoveAmplitude,
-            data.CollectibleMoveSpeed);
+            data.MoveAmplitude,
+            data.MoveSpeed);
 
         return collectible;
     }
