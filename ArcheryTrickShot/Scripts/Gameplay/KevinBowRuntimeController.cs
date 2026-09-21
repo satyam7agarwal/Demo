@@ -52,6 +52,10 @@ public sealed class KevinBowRuntimeController : MonoBehaviour
     private Transform drawHand;
     private Vector3 drawHandNockOffsetLocal;
 
+    // Standard Humanoids move their real draw arm according to draw strength.
+    // Legacy/Kevin rigs keep the proven rest->hand interpolation path.
+    private bool directHumanoidNockBinding;
+
     private Vector3 restNockLocalPosition;
     private Vector3 restLimb01Euler;
     private Vector3 restLimb02Euler;
@@ -84,6 +88,9 @@ public sealed class KevinBowRuntimeController : MonoBehaviour
         nockPoint != null
             ? nockPoint.position
             : transform.position;
+
+    public Vector3 RestNockWorldPosition =>
+        GetRestNockWorldPosition();
 
     public void Configure(
         Transform characterRoot,
@@ -142,6 +149,11 @@ public sealed class KevinBowRuntimeController : MonoBehaviour
         drawHand = runtimeDrawHand;
         drawHandNockOffsetLocal =
             nockOffsetInDrawHandLocal;
+
+        directHumanoidNockBinding =
+            profile != null &&
+            profile.SocketBindingMode ==
+                ArcherSocketBindingMode.HumanoidAutoFingerSockets;
 
         restNockLocalPosition =
             nockPoint.localPosition;
@@ -492,15 +504,21 @@ public sealed class KevinBowRuntimeController : MonoBehaviour
                 visualDrawAmount *
                 attach);
 
-        // THIS is the important change:
-        // 0 draw = relaxed/rest string
-        // 0.5 draw = nock halfway toward draw hand
-        // 1 draw = nock reaches final draw-hand target
-        nockPoint.position =
-            Vector3.Lerp(
-                restWorld,
-                handTarget,
-                effectiveDraw);
+        if (directHumanoidNockBinding && drawHand != null)
+        {
+            // Humanoid arm solver already placed the finger socket at the
+            // correct draw-strength position. String + arrow use that exact nock.
+            nockPoint.position = handTarget;
+        }
+        else
+        {
+            // Legacy/Kevin behaviour stays unchanged.
+            nockPoint.position =
+                Vector3.Lerp(
+                    restWorld,
+                    handTarget,
+                    effectiveDraw);
+        }
 
         // Limb flex now follows the same visible draw amount as the string.
         // No separate pointer gate, so the bow cannot look fully loaded while

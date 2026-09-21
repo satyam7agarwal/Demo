@@ -41,6 +41,12 @@ public sealed class Archer3DVisualController : MonoBehaviour
     private Transform bowHand;
     private Transform drawHand;
 
+    // Humanoid draw-arm chain. Used only by the standard auto-socket path
+    // (Nerissa and future Mixamo/Hyper-style characters). Legacy/Kevin rigs
+    // never enter this solver.
+    private Transform drawUpperArm;
+    private Transform drawLowerArm;
+
     // Standard runtime sockets for Hyper/Mixamo-style Humanoids.
     // Kevin stays on the legacy authored-hand path.
     private ArcherHumanoidSocketAdapter humanoidSockets;
@@ -72,6 +78,7 @@ public sealed class Archer3DVisualController : MonoBehaviour
 
     private float poseBlend;
     private float poseBlendVelocity;
+    private float currentDrawAmount;
 
     private bool drawing;
     private bool releasePending;
@@ -213,6 +220,7 @@ public sealed class Archer3DVisualController : MonoBehaviour
 
         poseBlend = 0f;
         poseBlendVelocity = 0f;
+        currentDrawAmount = 0f;
 
         drawing = false;
         releasePending = false;
@@ -269,6 +277,18 @@ public sealed class Archer3DVisualController : MonoBehaviour
         bowHand = animator.GetBoneTransform(profile.BowHandBone);
 
         drawHand = animator.GetBoneTransform(profile.DrawHandBone);
+
+        bool drawIsLeft = drawHand != null && drawHand == leftHand;
+
+        drawUpperArm = animator.GetBoneTransform(
+            drawIsLeft
+                ? HumanBodyBones.LeftUpperArm
+                : HumanBodyBones.RightUpperArm);
+
+        drawLowerArm = animator.GetBoneTransform(
+            drawIsLeft
+                ? HumanBodyBones.LeftLowerArm
+                : HumanBodyBones.RightLowerArm);
 
         Transform leftShoulder = animator.GetBoneTransform(HumanBodyBones.LeftShoulder);
 
@@ -748,6 +768,16 @@ public sealed class Archer3DVisualController : MonoBehaviour
         // Reconstruct from FINAL bow-grip socket / authored hand binding.
         ApplyStableBowBinding();
 
+        // Humanoid draw strength must move the physical draw arm, not only the
+        // string. The solver runs after aim + bow placement so it can pull the
+        // fingers toward the bow's true relaxed nock, then progressively back
+        // toward the authored full-draw pose.
+        ApplyHumanoidDrawArmToNock();
+
+        // The arm solver changes the finger transforms, so rebuild the sockets
+        // one final time before the bow/string/arrow consume them.
+        humanoidSockets?.RefreshPose();
+
         // Now update Kevin's real bow internals:
         // B-bowLimb01 / B-bowTip01
         // B-bowLimb02 / B-bowTip02
@@ -766,6 +796,130 @@ public sealed class Archer3DVisualController : MonoBehaviour
         }
 
         PoseApplied?.Invoke();
+    }
+
+    /// <summary>
+    /// Standard-Humanoid draw solver.
+    /// </summary>
+    private void ApplyHumanoidDrawArmToNock()
+    {
+        if (!drawing ||
+            !UsesHumanoidAutoSockets ||
+            humanoidSockets == null ||
+            humanoidSockets.DrawNockSocket == null ||
+            drawUpperArm == null ||
+            drawLowerArm == null ||
+            drawHand == null ||
+            kevinBow == null ||
+            !kevinBow.IsReady)
+        {
+            return;
+        }
+
+        humanoidSockets.RefreshPose();
+
+        Vector3 fullDrawNock = humanoidSockets.DrawNockSocket.position;
+        Vector3 relaxedNock = kevinBow.RestNockWorldPosition;
+        float draw = Mathf.Clamp01(currentDrawAmount);
+        Vector3 desiredNock = Vector3.Lerp(relaxedNock, fullDrawNock, draw);
+        float solveWeight = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(poseBlend));
+
+        const int solvePasses = 2;
+
+        for (int i = 0; i < solvePasses; i++)
+        {
+            humanoidSockets.RefreshPose();
+
+            Vector3 socketFromWrist =
+                humanoidSockets.DrawNockSocket.position - drawHand.position;
+
+            Vector3 desiredWrist = desiredNock - socketFromWrist;
+            desiredWrist = Vector3.Lerp(drawHand.position, desiredWrist, solveWeight);
+
+            SolveDrawArmTwoBone(desiredWrist);
+        }
+    }
+
+    private void SolveDrawArmTwoBone(Vector3 targetWrist)
+    {
+        Vector3 shoulder = drawUpperArm.position;
+        Vector3 elbow = drawLowerArm.position;
+        Vector3 wrist = drawHand.position;
+
+        float upperLength = Vector3.Distance(shoulder, elbow);
+        float lowerLength = Vector3.Distance(elbow, wrist);
+
+        if (upperLength <= 0.0001f || lowerLength <= 0.0001f)
+            return;
+
+        Vector3 toTarget = targetWrist - shoulder;
+        float targetDistance = toTarget.magnitude;
+        if (targetDistance <= 0.0001f)
+            return;
+
+        Vector3 targetDirection = toTarget / targetDistance;
+        float minReach = Mathf.Abs(upperLength - lowerLength) + 0.0001f;
+        float maxReach = upperLength + lowerLength - 0.0001f;
+        float clampedDistance = Mathf.Clamp(targetDistance, minReach, maxReach);
+        Vector3 reachableWrist = shoulder + targetDirection * clampedDistance;
+
+        Vector3 upperVector = elbow - shoulder;
+        Vector3 lowerVector = wrist - elbow;
+        Vector3 bendPlaneNormal = Vector3.Cross(upperVector, lowerVector);
+
+        if (bendPlaneNormal.sqrMagnitude < 0.000001f)
+        {
+            Camera gameplayCamera = Camera.main;
+            bendPlaneNormal = gameplayCamera != null
+                ? gameplayCamera.transform.forward
+                : Vector3.forward;
+        }
+
+        bendPlaneNormal.Normalize();
+        Vector3 bendDirection = Vector3.Cross(bendPlaneNormal, targetDirection);
+        if (bendDirection.sqrMagnitude < 0.000001f)
+            return;
+
+        bendDirection.Normalize();
+
+        float elbowAlongTarget =
+            (upperLength * upperLength - lowerLength * lowerLength +
+             clampedDistance * clampedDistance) /
+            (2f * clampedDistance);
+
+        float elbowPerpendicular = Mathf.Sqrt(Mathf.Max(
+            0f,
+            upperLength * upperLength - elbowAlongTarget * elbowAlongTarget));
+
+        Vector3 elbowA = shoulder + targetDirection * elbowAlongTarget + bendDirection * elbowPerpendicular;
+        Vector3 elbowB = shoulder + targetDirection * elbowAlongTarget - bendDirection * elbowPerpendicular;
+        Vector3 desiredElbow = (elbowA - elbow).sqrMagnitude <= (elbowB - elbow).sqrMagnitude
+            ? elbowA
+            : elbowB;
+
+        Quaternion upperCorrection = Quaternion.FromToRotation(
+            elbow - shoulder,
+            desiredElbow - shoulder);
+
+        drawUpperArm.rotation = upperCorrection * drawUpperArm.rotation;
+
+        elbow = drawLowerArm.position;
+        wrist = drawHand.position;
+
+        Vector3 currentForearm = wrist - elbow;
+        Vector3 desiredForearm = reachableWrist - elbow;
+
+        if (currentForearm.sqrMagnitude <= 0.000001f ||
+            desiredForearm.sqrMagnitude <= 0.000001f)
+        {
+            return;
+        }
+
+        Quaternion lowerCorrection = Quaternion.FromToRotation(
+            currentForearm,
+            desiredForearm);
+
+        drawLowerArm.rotation = lowerCorrection * drawLowerArm.rotation;
     }
 
     private void ApplyNaturalFullBodyAim()
@@ -1262,6 +1416,7 @@ public sealed class Archer3DVisualController : MonoBehaviour
         releasePending = false;
         releaseFireQueued = false;
         releaseElapsed = 0f;
+        currentDrawAmount = 0f;
 
         if (!UsesCameraFacingBow)
         {
@@ -1296,6 +1451,7 @@ public sealed class Archer3DVisualController : MonoBehaviour
         releasePending = false;
         releaseFireQueued = false;
         releaseElapsed = 0f;
+        currentDrawAmount = 0f;
 
         if (!UsesCameraFacingBow)
         {
@@ -1326,6 +1482,8 @@ public sealed class Archer3DVisualController : MonoBehaviour
         targetAimAngle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
 
         float clampedDrawAmount = Mathf.Clamp01(drawAmount);
+
+        currentDrawAmount = clampedDrawAmount;
 
         if (hasDrawAmount)
         {
