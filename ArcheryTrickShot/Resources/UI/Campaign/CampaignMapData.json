@@ -73,6 +73,13 @@
       "y": 420,
       "title": "ANCIENT SENTINEL",
       "subtitle": "Strike the guardian. Break the seal. Master the final shot."
+    },
+    {
+      "level": 11,
+      "x": 560,
+      "y": 520,
+      "title": "BEND THE PATH",
+      "subtitle": "Aim above the wall. Let gravity bring it home."
     }
   ]
 }

@@ -84,6 +84,44 @@ public static class ATSPlayerProgress
         PlayerPrefs.Save();
     }
 
+    /// <summary>
+    /// Reconciles progression when new levels are appended after a release.
+    /// Example: a player who had already completed old-final Level 10 should
+    /// automatically have newly-added Level 11 unlocked.
+    /// </summary>
+    public static void ReconcileUnlockedLevels(
+        int totalLevels)
+    {
+        totalLevels =
+            Mathf.Max(
+                1,
+                totalLevels);
+
+        int storedHighest =
+            Mathf.Clamp(
+                HighestUnlockedLevel,
+                1,
+                totalLevels);
+
+        int reconciled =
+            storedHighest;
+
+        while (reconciled < totalLevels &&
+               GetBestStars(reconciled) > 0)
+        {
+            reconciled++;
+        }
+
+        if (reconciled <= HighestUnlockedLevel)
+            return;
+
+        PlayerPrefs.SetInt(
+            HighestUnlockedKey,
+            reconciled);
+
+        PlayerPrefs.Save();
+    }
+
     public static void RecordCompletion(int levelNumber, int stars, int score, int totalLevels)
     {
         stars = Mathf.Clamp(stars, 1, 3);

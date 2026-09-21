@@ -35,6 +35,8 @@ public sealed class LevelManager : MonoBehaviour
     private LevelState stateBeforePause = LevelState.Playing;
     private int currentLevelIndex;
     private LevelData currentLevel;
+    private ArcherGameplayTraitProfile currentArcherGameplayTrait;
+    private CharacterGravityAimPreview gravityAimPreview;
     private int shotsUsed;
     private int currentLevelScore;
     private int currentLevelTargetScore;
@@ -256,6 +258,13 @@ public sealed class LevelManager : MonoBehaviour
         if (resourceLevels.Length > 0)
             levels = resourceLevels;
 
+        if (levels != null &&
+            levels.Length > 0)
+        {
+            ATSPlayerProgress.ReconcileUnlockedLevels(
+                levels.Length);
+        }
+
         if (levels == null || levels.Length == 0)
         {
             Debug.LogError("LevelManager: No LevelData assets were found. Add them under Resources/Levels.");
@@ -376,6 +385,27 @@ public sealed class LevelManager : MonoBehaviour
             return;
         }
 
+        ApplyRequiredCharacterForCurrentLevel();
+
+        if (bow != null)
+        {
+            bow.Configure(
+                config);
+        }
+
+        currentArcherGameplayTrait =
+            ArcherGameplayTraitResolver
+                .ResolveSelected();
+
+        // Nerissa owns her ballistic curve, so the old straight/mirror FULL
+        // PATH guide stays off while her gravity guide is active.
+        if (currentArcherGameplayTrait != null &&
+            currentArcherGameplayTrait.UsesGravityArc)
+        {
+            fullTrajectoryPreviewEnabled =
+                false;
+        }
+
         currentState = LevelState.Loading;
         shotsUsed = 0;
         currentLevelScore = 0;
@@ -408,6 +438,40 @@ public sealed class LevelManager : MonoBehaviour
 
         currentState = LevelState.Playing;
         CreateArrow();
+    }
+
+    private void ApplyRequiredCharacterForCurrentLevel()
+    {
+        if (currentLevel == null ||
+            string.IsNullOrWhiteSpace(
+                currentLevel.RequiredCharacterId))
+        {
+            return;
+        }
+
+        ArcherCharacterRoster roster =
+            ArcherCharacterRoster.LoadDefault();
+
+        if (roster == null)
+        {
+            Debug.LogWarning(
+                "LevelManager: Character roster is missing; " +
+                $"cannot apply required character '{currentLevel.RequiredCharacterId}'.");
+            return;
+        }
+
+        if (!roster.SelectCharacter(
+                currentLevel.RequiredCharacterId))
+        {
+            Debug.LogWarning(
+                "LevelManager: Required character '" +
+                currentLevel.RequiredCharacterId +
+                "' is not present in ArcherCharacterRoster.");
+            return;
+        }
+
+        ArcherGameplayTraitResolver
+            .InvalidateCache();
     }
 
     private void SpawnLevelObjects()
@@ -828,15 +892,70 @@ public sealed class LevelManager : MonoBehaviour
         }
 
         currentArrow.Configure(config);
+        currentArrow.ResetArrow();
+        ConfigureCurrentArrowGameplayTrait(
+            currentArrow);
+
         currentArrow.SolidCollision += OnSolidCollision;
         currentArrow.Missed += OnMissed;
         currentArrow.Shot += OnShot;
         currentArrow.Reflected += OnArrowReflected;
-        currentArrow.ResetArrow();
 
         bow.SetArrow(currentArrow);
+        ConfigureCharacterAimPreview(
+            currentArrow);
         bow.SetInputEnabled(true);
         gameUI?.SetAimHintVisible(true);
+    }
+
+    private void ConfigureCurrentArrowGameplayTrait(
+        ArrowController arrow)
+    {
+        if (arrow == null)
+            return;
+
+        CharacterProjectileTraitRuntime runtime =
+            arrow.GetComponent<CharacterProjectileTraitRuntime>();
+
+        if (runtime == null)
+        {
+            runtime =
+                arrow.gameObject
+                    .AddComponent<CharacterProjectileTraitRuntime>();
+        }
+
+        runtime.Configure(
+            arrow,
+            currentArcherGameplayTrait,
+            bow);
+    }
+
+    private void ConfigureCharacterAimPreview(
+        ArrowController arrow)
+    {
+        if (bow == null)
+            return;
+
+        if (gravityAimPreview == null)
+        {
+            gravityAimPreview =
+                bow.GetComponent<CharacterGravityAimPreview>();
+
+            if (gravityAimPreview == null)
+            {
+                gravityAimPreview =
+                    bow.gameObject
+                        .AddComponent<CharacterGravityAimPreview>();
+            }
+
+            gravityAimPreview.Bind(
+                bow);
+        }
+
+        gravityAimPreview.Configure(
+            arrow,
+            currentArcherGameplayTrait,
+            config);
     }
 
     private void OnShot()
@@ -1376,14 +1495,13 @@ public sealed class LevelManager : MonoBehaviour
         currentLevelIndex = index;
         ATSPlayerProgress.RecordLevelStarted(levels[currentLevelIndex].LevelNumber);
 
-        // Re-resolve the roster selection before every frontend-driven start so
-        // changing Khaem/Nerissa takes effect without restarting Unity or the app.
         if (bow != null)
         {
             bow.gameObject.SetActive(true);
-            bow.Configure(config);
         }
 
+        // LoadLevel resolves any required level character first, then configures
+        // the bow/runtime exactly once with the final character selection.
         LoadLevel();
     }
 
@@ -1533,6 +1651,23 @@ public sealed class LevelManager : MonoBehaviour
         if (currentState != LevelState.Playing)
             return;
 
+        if (currentArcherGameplayTrait != null &&
+            currentArcherGameplayTrait.UsesGravityArc)
+        {
+            // Nerissa's character-specific ballistic guide is already accurate
+            // for her gravity motion. Do not display the old straight FULL PATH.
+            fullTrajectoryPreviewEnabled =
+                false;
+
+            bow?.SetFullTrajectoryPreviewEnabled(
+                false);
+
+            gameUI?.SetFullTrajectoryPreviewEnabled(
+                false);
+
+            return;
+        }
+
         fullTrajectoryPreviewEnabled =
             !fullTrajectoryPreviewEnabled;
 
@@ -1586,6 +1721,22 @@ public sealed class LevelManager : MonoBehaviour
     {
         if (currentState != LevelState.Completed)
             return;
+
+        // First completion of Level 6 gets a one-time Nerissa reveal before
+        // returning to the campaign map. The teaser itself owns its persistence
+        // key, presentation and transition back to the map.
+        if (currentLevel != null &&
+            NerissaTeaserController.ShouldShowAfterLevel(
+                currentLevel.LevelNumber))
+        {
+            PrepareForFrontend();
+
+            NerissaTeaserController.Show(
+                this,
+                config);
+
+            return;
+        }
 
         if (currentLevelIndex >= levels.Length - 1)
         {
@@ -1655,6 +1806,8 @@ public sealed class LevelManager : MonoBehaviour
         activeGateSegments.Clear();
         activeGatesByUnlockGroup.Clear();
         remainingBirdObjectivesByUnlockGroup.Clear();
+
+        gravityAimPreview?.ClearArrow();
 
         DestroyCurrentArrow();
 

@@ -16,6 +16,12 @@ public sealed class LevelData : ScriptableObject
     [FormerlySerializedAs("BowPosition")]
     public Vector2 ArcherPosition = new Vector2(-5f, -2f);
 
+    [Header("Character")]
+    [Tooltip(
+        "Optional character required for this level. This selects WHO plays the level; " +
+        "character abilities such as gravity remain character-owned gameplay traits.")]
+    public string RequiredCharacterId = string.Empty;
+
     [Header("Ricochet Mastery")]
     [Tooltip(
         "Maximum UNIQUE mirrors intentionally rewardable in this level. " +

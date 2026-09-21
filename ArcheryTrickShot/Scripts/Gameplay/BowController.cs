@@ -19,6 +19,7 @@ public sealed class BowController : MonoBehaviour
 
     private GameConfig config;
     private Archer3DRuntimeProfile archerProfile;
+    private ArcherGameplayTraitProfile gameplayTrait;
     private Archer3DVisualController archerVisual;
 
     private ArrowController arrow;
@@ -40,6 +41,18 @@ public sealed class BowController : MonoBehaviour
     private Vector2 currentAimDirection = Vector2.right;
     private float currentDrawAmount;
 
+    // Nerissa/radial-draw stabilization state.
+    //
+    // Aiming remains free while the player swings around the virtual bow
+    // anchor. When the player starts easing the string forward roughly along
+    // the current shot axis, we lock that axis. Small finger wobble then changes
+    // power only. A larger deliberate angular deviation unlocks aim again.
+    private bool radialAimAxisLocked;
+    private float radialLockedAimAngle;
+    private float radialPreviousDistance;
+    private float radialPreviousRawAngle;
+    private bool radialHasPreviousSample;
+
     private readonly List<RaycastResult> uiRaycastResults =
         new List<RaycastResult>(8);
 
@@ -55,9 +68,24 @@ public sealed class BowController : MonoBehaviour
 
     public bool IsAiming => isAiming;
 
+    // Read-only gameplay value. Character traits may consume draw strength,
+    // but BowController remains the single owner of input/draw calculation.
+    public float CurrentDrawAmount =>
+        currentDrawAmount;
+
     public bool FullTrajectoryPreviewEnabled =>
         trajectoryRenderer != null &&
         trajectoryRenderer.FullPathEnabled;
+
+    private bool UsesIndependentAimAndDraw =>
+        gameplayTrait != null &&
+        gameplayTrait.UsesDrawStrength &&
+        gameplayTrait.IndependentAimAndDraw;
+
+    private bool UsesRadialDrawStrength =>
+        gameplayTrait != null &&
+        gameplayTrait.UsesDrawStrength &&
+        !gameplayTrait.IndependentAimAndDraw;
 
     private void Awake()
     {
@@ -76,6 +104,10 @@ public sealed class BowController : MonoBehaviour
 
         archerProfile =
             Archer3DRuntimeProfile.LoadDefault();
+
+        gameplayTrait =
+            ArcherGameplayTraitResolver.Resolve(
+                archerProfile);
 
         UnsubscribeFromArcher();
 
@@ -179,6 +211,7 @@ public sealed class BowController : MonoBehaviour
         releasePending = false;
         currentAimDirection = Vector2.right;
         currentDrawAmount = 0f;
+        ResetRadialAimState();
 
         CacheGameplayArrowVisuals();
         trajectoryRenderer?.SetPredictionArrow(arrow);
@@ -463,6 +496,7 @@ public sealed class BowController : MonoBehaviour
 
         isAiming = true;
         currentDrawAmount = 0f;
+        ResetRadialAimState();
 
         archerVisual?.BeginDraw();
 
@@ -600,6 +634,37 @@ public sealed class BowController : MonoBehaviour
         releasePending = false;
     }
 
+    private void ResetRadialAimState()
+    {
+        radialAimAxisLocked =
+            false;
+
+        radialLockedAimAngle =
+            0f;
+
+        radialPreviousDistance =
+            0f;
+
+        radialPreviousRawAngle =
+            0f;
+
+        radialHasPreviousSample =
+            false;
+    }
+
+    private static Vector2 DirectionFromDegrees(
+        float angleDegrees)
+    {
+        float radians =
+            angleDegrees *
+            Mathf.Deg2Rad;
+
+        return new Vector2(
+            Mathf.Cos(radians),
+            Mathf.Sin(radians))
+            .normalized;
+    }
+
     private bool TryGetAim(
         Vector2 screenPosition,
         out Vector2 clampedDirection,
@@ -651,40 +716,280 @@ public sealed class BowController : MonoBehaviour
         Vector2 pullDirection =
             (Vector2)(pointerDownWorld3 - pointerWorld3);
 
-        dragDistance =
-            pullDirection.magnitude;
-
         if (pullDirection.sqrMagnitude < 0.0001f)
             return false;
 
-        // Gameplay always fires into the forward/right hemisphere. Mirroring
-        // only X keeps the pull-back vertical behaviour continuous while also
-        // retaining the earlier protection against the +/-180 degree Atan2
-        // branch-cut jump when the pointer crosses behind the archer.
+        if (UsesIndependentAimAndDraw)
+        {
+            // Real-archery style control for characters such as Nerissa:
+            //
+            // horizontal pull = stored bow power
+            // vertical pull   = aim angle
+            //
+            // They are deliberately independent. Moving the pointer left/right
+            // at a constant Y can therefore tighten/loosen the string without
+            // making the bow rotate up/down.
+            dragDistance =
+                Mathf.Max(
+                    0f,
+                    pullDirection.x);
+
+            float verticalRange =
+                Mathf.Max(
+                    0.25f,
+                    gameplayTrait.VerticalAimRange);
+
+            float normalizedVertical =
+                Mathf.Clamp(
+                    pullDirection.y /
+                    verticalRange,
+                    -1f,
+                    1f);
+
+            float rawAngle;
+
+            if (normalizedVertical >= 0f)
+            {
+                rawAngle =
+                    normalizedVertical *
+                    config.MaximumAimAngle;
+            }
+            else
+            {
+                rawAngle =
+                    -normalizedVertical *
+                    config.MinimumAimAngle;
+            }
+
+            float clampedAngle =
+                Mathf.Clamp(
+                    rawAngle,
+                    config.MinimumAimAngle,
+                    config.MaximumAimAngle);
+
+            float radians =
+                clampedAngle *
+                Mathf.Deg2Rad;
+
+            clampedDirection =
+                new Vector2(
+                    Mathf.Cos(radians),
+                    Mathf.Sin(radians))
+                .normalized;
+
+            return true;
+        }
+
+        if (UsesRadialDrawStrength)
+        {
+            // REAL-ARCHERY RADIAL PULL + FORGIVING AIM CORRIDOR
+            //
+            // pointer-down             = virtual bow/string anchor
+            // pull-vector angle        = aim
+            // distance along aim axis  = draw strength / power
+            //
+            // While the player is freely rotating around the anchor, aim follows
+            // the finger. Once they start EASING FORWARD along roughly the same
+            // shot axis, the aim locks. Small wobble is then interpreted as
+            // power adjustment, not accidental re-aiming.
+            //
+            // Lock corridor:     default +/-5 degrees
+            // Unlock threshold:  default +/-8 degrees
+            //
+            // The 5/8 split is intentional hysteresis: hovering around one
+            // boundary cannot repeatedly lock/unlock the bow every frame.
+
+            float radialDistance =
+                pullDirection.magnitude;
+
+            float radialAimDeadZone =
+                Mathf.Max(
+                    0.06f,
+                    config.MinimumAimDistance *
+                    0.35f);
+
+            if (pullDirection.x <= 0f ||
+                radialDistance <= radialAimDeadZone)
+            {
+                dragDistance =
+                    0f;
+
+                clampedDirection =
+                    currentAimDirection.sqrMagnitude >
+                    0.0001f
+                        ? currentAimDirection.normalized
+                        : Vector2.right;
+
+                radialPreviousDistance =
+                    radialDistance;
+
+                radialHasPreviousSample =
+                    true;
+
+                return true;
+            }
+
+            float radialRawAngle =
+                Mathf.Atan2(
+                    pullDirection.y,
+                    pullDirection.x) *
+                Mathf.Rad2Deg;
+
+            float radialClampedAngle =
+                Mathf.Clamp(
+                    radialRawAngle,
+                    config.MinimumAimAngle,
+                    config.MaximumAimAngle);
+
+            float lockTolerance =
+                gameplayTrait != null
+                    ? Mathf.Max(
+                        0.5f,
+                        gameplayTrait
+                            .RadialAimLockToleranceDegrees)
+                    : 5f;
+
+            float unlockThreshold =
+                gameplayTrait != null
+                    ? Mathf.Max(
+                        lockTolerance + 0.5f,
+                        gameplayTrait
+                            .RadialAimUnlockThresholdDegrees)
+                    : 8f;
+
+            if (radialAimAxisLocked)
+            {
+                float deviationFromLock =
+                    Mathf.Abs(
+                        Mathf.DeltaAngle(
+                            radialLockedAimAngle,
+                            radialClampedAngle));
+
+                if (deviationFromLock >
+                    unlockThreshold)
+                {
+                    // Deliberate sideways movement: player wants to re-aim.
+                    radialAimAxisLocked =
+                        false;
+                }
+            }
+
+            if (!radialAimAxisLocked &&
+                radialHasPreviousSample)
+            {
+                float radialDelta =
+                    radialDistance -
+                    radialPreviousDistance;
+
+                float angleDelta =
+                    Mathf.Abs(
+                        Mathf.DeltaAngle(
+                            radialPreviousRawAngle,
+                            radialClampedAngle));
+
+                // Lock only when the user actually begins easing the string
+                // forward. This keeps outward pull / circular movement free for
+                // intentional aiming.
+                const float inwardDistanceEpsilon =
+                    0.008f;
+
+                bool easingForward =
+                    radialDelta <
+                    -inwardDistanceEpsilon;
+
+                bool stillInsideAimCorridor =
+                    angleDelta <=
+                    lockTolerance;
+
+                if (easingForward &&
+                    stillInsideAimCorridor)
+                {
+                    radialAimAxisLocked =
+                        true;
+
+                    // Lock the previous valid gameplay aim, not the latest tiny
+                    // finger wobble that triggered the inward movement.
+                    radialLockedAimAngle =
+                        Mathf.Atan2(
+                            currentAimDirection.y,
+                            currentAimDirection.x) *
+                        Mathf.Rad2Deg;
+
+                    radialLockedAimAngle =
+                        Mathf.Clamp(
+                            radialLockedAimAngle,
+                            config.MinimumAimAngle,
+                            config.MaximumAimAngle);
+                }
+            }
+
+            float resolvedAimAngle =
+                radialAimAxisLocked
+                    ? radialLockedAimAngle
+                    : radialClampedAngle;
+
+            clampedDirection =
+                DirectionFromDegrees(
+                    resolvedAimAngle);
+
+            if (radialAimAxisLocked)
+            {
+                // Project finger displacement onto the locked shot axis.
+                // Sideways wobble therefore contributes almost no extra/less
+                // power and cannot create a "longer pull" by accident.
+                dragDistance =
+                    Mathf.Max(
+                        0f,
+                        Vector2.Dot(
+                            pullDirection,
+                            clampedDirection));
+            }
+            else
+            {
+                dragDistance =
+                    radialDistance;
+            }
+
+            radialPreviousDistance =
+                radialDistance;
+
+            radialPreviousRawAngle =
+                radialClampedAngle;
+
+            radialHasPreviousSample =
+                true;
+
+            return true;
+        }
+
+        // Existing Khaem/non-draw-strength control remains untouched.
+        dragDistance =
+            pullDirection.magnitude;
+
         pullDirection.x =
             Mathf.Abs(
                 pullDirection.x);
 
-        float rawAngle =
+        float legacyRawAngle =
             Mathf.Atan2(
                 pullDirection.y,
                 pullDirection.x) *
             Mathf.Rad2Deg;
 
-        float clampedAngle =
+        float legacyClampedAngle =
             Mathf.Clamp(
-                rawAngle,
+                legacyRawAngle,
                 config.MinimumAimAngle,
                 config.MaximumAimAngle);
 
-        float radians =
-            clampedAngle *
+        float legacyRadians =
+            legacyClampedAngle *
             Mathf.Deg2Rad;
 
         clampedDirection =
             new Vector2(
-                Mathf.Cos(radians),
-                Mathf.Sin(radians))
+                Mathf.Cos(legacyRadians),
+                Mathf.Sin(legacyRadians))
             .normalized;
 
         return true;
@@ -842,6 +1147,7 @@ public sealed class BowController : MonoBehaviour
         isAiming = false;
         releasePending = false;
         currentDrawAmount = 0f;
+        ResetRadialAimState();
 
         trajectoryRenderer?.Hide();
         archerVisual?.CancelDraw();

@@ -15,10 +15,10 @@ using KevinIglesias;
 /// The demo HumanArcherController stays disabled.
 ///
 /// Mobile-polish behaviour:
-/// - the real string nock is constrained to the FINAL runtime draw-hand pose
-///   while drawing, so hand/string stay visually connected at every aim angle;
-/// - bow-limb bend is derived from the actual nock displacement, so it stays
-///   synchronized with the visible pull;
+/// - the real string nock follows the player's ACTUAL draw amount while drawing;
+/// - reducing draw visibly relaxes the string and limbs instead of keeping them
+///   fully loaded;
+/// - full draw still reaches the final runtime draw-hand pose;
 /// - release returns the real nock/limbs using Kevin's original release curve.
 /// </summary>
 [DefaultExecutionOrder(1100)]
@@ -29,6 +29,10 @@ public sealed class KevinBowRuntimeController : MonoBehaviour
 
     // Short blend avoids a one-frame snap when Idle transitions into Load.
     private const float DrawHandAttachSeconds = 0.10f;
+
+    // Very small visual damping keeps finger jitter from vibrating the string,
+    // while still making pull/relax changes feel immediate.
+    private const float VisualDrawResponseSeconds = 0.055f;
 
     // Matches the short Kevin bow release behaviour while the actual gameplay
     // arrow is launched immediately by BowController.
@@ -61,6 +65,7 @@ public sealed class KevinBowRuntimeController : MonoBehaviour
     private AnimationCurve releaseCurve;
 
     private float requestedDrawAmount;
+    private float visualDrawAmount;
     private float drawHandAttach;
     private float releaseElapsed;
 
@@ -118,14 +123,7 @@ public sealed class KevinBowRuntimeController : MonoBehaviour
         }
         else
         {
-            // Retargeted Humanoids (Khaem / Mixamo / Hyper-style characters)
-            // still use the shared authored HumanArcher_Bow prefab, but the
-            // visual controller may hand us either the prefab root or one of
-            // its descendants depending on how the character was assembled.
-            //
-            // Resolve from both the supplied bow root and the full character
-            // hierarchy so character skeleton differences can never break the
-            // shared bow internals.
+            // Retargeted Humanoids still use the shared authored bow prefab.
             ResolveOriginalBowRig(
                 characterRoot,
                 runtimeBowRoot);
@@ -181,6 +179,7 @@ public sealed class KevinBowRuntimeController : MonoBehaviour
             characterRoot);
 
         requestedDrawAmount = 0f;
+        visualDrawAmount = 0f;
         drawHandAttach = 0f;
         releaseElapsed = 0f;
         state = State.Ready;
@@ -191,8 +190,8 @@ public sealed class KevinBowRuntimeController : MonoBehaviour
         IsReady = true;
 
         Debug.Log(
-            "[Kevin Bow] Original bow active with live draw-hand nock " +
-            "constraint. line=" + bowstringLine.name +
+            "[Kevin Bow] Original bow active with draw-strength-controlled " +
+            "live nock. line=" + bowstringLine.name +
             ", tip01=" + tip01.name +
             ", nock=" + nockPoint.name +
             ", tip02=" + tip02.name +
@@ -208,8 +207,6 @@ public sealed class KevinBowRuntimeController : MonoBehaviour
         Transform characterRoot,
         Transform runtimeBowRoot)
     {
-        // First try the supplied runtime bow hierarchy. This is the normal and
-        // cheapest path.
         bowstringLine =
             runtimeBowRoot != null
                 ? runtimeBowRoot.GetComponentInChildren<LineRenderer>(true)
@@ -225,9 +222,6 @@ public sealed class KevinBowRuntimeController : MonoBehaviour
         if (HasAllRequiredReferences())
             return;
 
-        // Some retargeted-character setups expose a nested mesh/transform as
-        // the visual bow rather than the prefab root. Walk upward before
-        // falling back to a character-wide lookup.
         Transform ancestor = runtimeBowRoot != null
             ? runtimeBowRoot.parent
             : null;
@@ -257,10 +251,6 @@ public sealed class KevinBowRuntimeController : MonoBehaviour
             ancestor = ancestor.parent;
         }
 
-        // Final robust fallback: the character presentation hierarchy owns
-        // exactly one shared runtime bow. Search it by the authored bow names.
-        // This keeps Khaem and future standard Humanoids independent of their
-        // own wrist/finger hierarchy and prefab nesting.
         if (characterRoot != null)
         {
             if (bowstringLine == null)
@@ -347,11 +337,6 @@ public sealed class KevinBowRuntimeController : MonoBehaviour
             new Keyframe(1f, 1f));
     }
 
-    /// <summary>
-    /// Called after Archer3DVisualController has corrected which physical hand
-    /// is holding the bow. This keeps the nock attached to the real draw hand,
-    /// not to a profile guess.
-    /// </summary>
     public void SetDrawHand(
         Transform runtimeDrawHand,
         Vector3 nockOffsetInDrawHandLocal)
@@ -368,6 +353,7 @@ public sealed class KevinBowRuntimeController : MonoBehaviour
 
         state = State.Ready;
         requestedDrawAmount = 0f;
+        visualDrawAmount = 0f;
         drawHandAttach = 0f;
         releaseElapsed = 0f;
 
@@ -382,6 +368,7 @@ public sealed class KevinBowRuntimeController : MonoBehaviour
 
         state = State.Drawing;
         requestedDrawAmount = 0f;
+        visualDrawAmount = 0f;
         drawHandAttach = 0f;
         releaseElapsed = 0f;
 
@@ -407,8 +394,6 @@ public sealed class KevinBowRuntimeController : MonoBehaviour
         if (!IsReady)
             return;
 
-        // Capture the exact visible pose from the last draw frame. This makes
-        // the string snap back from where the user's hand actually was.
         releaseStartNockWorldPosition =
             nockPoint.position;
 
@@ -429,6 +414,7 @@ public sealed class KevinBowRuntimeController : MonoBehaviour
 
         state = State.Ready;
         requestedDrawAmount = 0f;
+        visualDrawAmount = 0f;
         drawHandAttach = 0f;
         releaseElapsed = 0f;
 
@@ -436,12 +422,6 @@ public sealed class KevinBowRuntimeController : MonoBehaviour
         UpdateOriginalBowstring();
     }
 
-    /// <summary>
-    /// Called explicitly by Archer3DVisualController after Animator + full-body
-    /// procedural aim + stable bow binding have all finished for the frame.
-    /// Therefore drawHand, bow tips and bow root are all in their FINAL visible
-    /// positions before the string is updated.
-    /// </summary>
     public void ApplyAfterArcherPose(
         float deltaTime)
     {
@@ -483,9 +463,8 @@ public sealed class KevinBowRuntimeController : MonoBehaviour
                     drawHandNockOffsetLocal)
                 : anchorPoint.position;
 
-        // Blend the constraint in over a very short interval. The actual
-        // movement after that comes from Kevin's authored arm animation plus
-        // our procedural full-body aim, so no second smoothing layer is added.
+        // Only the initial attachment is time-smoothed. After that, actual
+        // player draw amount is the source of truth.
         drawHandAttach =
             Mathf.MoveTowards(
                 drawHandAttach,
@@ -499,47 +478,35 @@ public sealed class KevinBowRuntimeController : MonoBehaviour
                 1f,
                 drawHandAttach);
 
+        // Smooth only enough to remove touch jitter. Pulling in/out remains
+        // immediately visible instead of snapping straight to full draw.
+        visualDrawAmount =
+            Mathf.MoveTowards(
+                visualDrawAmount,
+                requestedDrawAmount,
+                dt /
+                VisualDrawResponseSeconds);
+
+        float effectiveDraw =
+            Mathf.Clamp01(
+                visualDrawAmount *
+                attach);
+
+        // THIS is the important change:
+        // 0 draw = relaxed/rest string
+        // 0.5 draw = nock halfway toward draw hand
+        // 1 draw = nock reaches final draw-hand target
         nockPoint.position =
             Vector3.Lerp(
                 restWorld,
                 handTarget,
-                attach);
+                effectiveDraw);
 
-        // Bow flex comes from the REAL visible nock displacement. This keeps
-        // limb bend synchronized with the hand/string instead of using an
-        // unrelated pointer-distance animation.
-        float authoredFullDrawDistance =
-            Mathf.Max(
-                0.001f,
-                Vector3.Distance(
-                    restWorld,
-                    anchorPoint.position));
-
-        float currentPullDistance =
-            Vector3.Distance(
-                restWorld,
-                nockPoint.position);
-
-        float geometryDraw =
-            Mathf.Clamp01(
-                currentPullDistance /
-                authoredFullDrawDistance);
-
-        // requestedDrawAmount remains a soft cap only during the first few
-        // frames so a press does not instantly over-flex the limbs.
-        float pointerGate =
-            Mathf.Lerp(
-                0.35f,
-                1f,
-                requestedDrawAmount);
-
-        float limbDraw =
-            Mathf.Clamp01(
-                geometryDraw *
-                pointerGate);
-
+        // Limb flex now follows the same visible draw amount as the string.
+        // No separate pointer gate, so the bow cannot look fully loaded while
+        // gameplay power is weak.
         ApplyLimbPose(
-            limbDraw);
+            effectiveDraw);
     }
 
     private void ApplyReleasePose(
@@ -584,6 +551,7 @@ public sealed class KevinBowRuntimeController : MonoBehaviour
         {
             state = State.Ready;
             requestedDrawAmount = 0f;
+            visualDrawAmount = 0f;
             drawHandAttach = 0f;
             releaseElapsed = 0f;
 
