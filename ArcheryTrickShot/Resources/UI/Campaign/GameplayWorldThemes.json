@@ -1,0 +1,28 @@
+{
+  "themes": [
+    {
+      "minLevel": 1,
+      "maxLevel": 10,
+      "backgroundResource": "",
+      "fallbackResource": ""
+    },
+    {
+      "minLevel": 11,
+      "maxLevel": 13,
+      "backgroundResource": "Art/Backgrounds/CrystalCaverns_Entrance",
+      "fallbackResource": ""
+    },
+    {
+      "minLevel": 14,
+      "maxLevel": 17,
+      "backgroundResource": "Art/Backgrounds/CrystalCaverns_Deep",
+      "fallbackResource": "Art/Backgrounds/CrystalCaverns_Entrance"
+    },
+    {
+      "minLevel": 18,
+      "maxLevel": 20,
+      "backgroundResource": "Art/Backgrounds/CrystalCaverns_Sanctum",
+      "fallbackResource": "Art/Backgrounds/CrystalCaverns_Entrance"
+    }
+  ]
+}

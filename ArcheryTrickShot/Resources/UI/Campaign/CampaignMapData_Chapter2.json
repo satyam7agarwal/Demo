@@ -1,0 +1,78 @@
+{
+  "chapterTitle": "CRYSTAL CAVERNS",
+  "chapterSubtitle": "DESCEND BENEATH THE RUINS.",
+  "mapWidth": 1000,
+  "mapHeight": 600,
+  "nodes": [
+    {
+      "level": 11,
+      "x": 105,
+      "y": 455,
+      "title": "BEND THE PATH",
+      "subtitle": "Aim above the wall. Let gravity bring it home."
+    },
+    {
+      "level": 12,
+      "x": 205,
+      "y": 390,
+      "title": "CRYSTAL CROSSING",
+      "subtitle": "The cavern path continues."
+    },
+    {
+      "level": 13,
+      "x": 320,
+      "y": 335,
+      "title": "ECHO CHAMBER",
+      "subtitle": "A deeper trial waits ahead."
+    },
+    {
+      "level": 14,
+      "x": 435,
+      "y": 275,
+      "title": "SHATTERED BRIDGE",
+      "subtitle": "Cross the broken crystal way."
+    },
+    {
+      "level": 15,
+      "x": 555,
+      "y": 190,
+      "title": "FALLING LIGHT",
+      "subtitle": "Follow the glow into the depths."
+    },
+    {
+      "level": 16,
+      "x": 675,
+      "y": 245,
+      "title": "DEEP CURRENT",
+      "subtitle": "The underground river guards the route."
+    },
+    {
+      "level": 17,
+      "x": 785,
+      "y": 330,
+      "title": "RUNE GATE",
+      "subtitle": "Ancient crystal runes mark the way."
+    },
+    {
+      "level": 18,
+      "x": 710,
+      "y": 440,
+      "title": "VIOLET DESCENT",
+      "subtitle": "The crystal glow grows stronger."
+    },
+    {
+      "level": 19,
+      "x": 825,
+      "y": 500,
+      "title": "SANCTUM APPROACH",
+      "subtitle": "One final passage before the core."
+    },
+    {
+      "level": 20,
+      "x": 930,
+      "y": 405,
+      "title": "CRYSTAL CORE",
+      "subtitle": "Reach the heart of the forgotten kingdom."
+    }
+  ]
+}
