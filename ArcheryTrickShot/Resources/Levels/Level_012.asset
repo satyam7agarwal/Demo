@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6893232cd05807d4ba9e180501d88967, type: 3}
-  m_Name: Level_011
+  m_Name: Level_012
   m_EditorClassIdentifier: Assembly-CSharp::LevelData
-  LevelNumber: 11
+  LevelNumber: 12
   MaxShots: 3
   IsGameFinale: 0
   ThreeStarShotLimit: 1
@@ -20,20 +20,31 @@ MonoBehaviour:
   RequiredCharacterId: nerissa
   MaxRewardedRicochetMirrors: 0
   Targets:
-  - Position: {x: 7.2, y: -0.8}
+  - Position: {x: 7.15, y: -1.0}
     Rotation: 0
     Scale: {x: 0.36, y: 0.36}
     Facing: 0
     Style: 2
   Walls:
-  - Position: {x: 0, y: -1.85}
+  - Position: {x: -2.20, y: -1.95}
     Rotation: 0
-    Scale: {x: 0.78, y: 0.78}
+    Scale: {x: 0.58, y: 0.70}
   Mirrors: []
   BonusProps: []
   Collectibles: []
   Gates: []
   FlyingBirds: []
-  ResonanceCrystals: []
-  CrystalGates: []
+  ResonanceCrystals:
+  - Position: {x: -0.45, y: 0.95}
+    Rotation: 0
+    Scale: {x: 0.24, y: 0.24}
+    UnlockGroupId: crystal_path
+    TriggerRadius: 0.78
+  CrystalGates:
+  - Position: {x: 4.25, y: -0.35}
+    Rotation: 0
+    Scale: {x: 0.72, y: 0.90}
+    UnlockGroupId: crystal_path
+    OpenOffset: {x: 0, y: 3.45}
+    OpenDuration: 0.22
   PrismCrystals: []

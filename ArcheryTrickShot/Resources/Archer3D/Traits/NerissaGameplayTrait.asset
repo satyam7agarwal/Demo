@@ -22,8 +22,8 @@ MonoBehaviour:
   DrawPowerExponent: 1.35
   IndependentAimAndDraw: 0
   VerticalAimRange: 2.5
-  RadialAimLockToleranceDegrees: 5
-  RadialAimUnlockThresholdDegrees: 8
+  RadialAimLockToleranceDegrees: 2.5
+  RadialAimUnlockThresholdDegrees: 4
   ShowAimCurve: 1
   AimCurveDuration: 1.45
   AimCurveSamples: 34

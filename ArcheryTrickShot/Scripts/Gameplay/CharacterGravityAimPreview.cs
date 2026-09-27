@@ -4,7 +4,9 @@ using UnityEngine;
 /// Character-specific ballistic aim curve.
 ///
 /// Nerissa gets this guide because her projectile is physically affected by
-/// gravity. It does not modify the existing mirror-aware FULL PATH renderer.
+/// gravity. In Crystal Caverns the guide also understands the first Prism
+/// Crystal it intersects: the ordinary green arc stops at the prism and a
+/// purple/cyan continuation shows the redirected ballistic path.
 /// </summary>
 public sealed class CharacterGravityAimPreview : MonoBehaviour
 {
@@ -16,9 +18,18 @@ public sealed class CharacterGravityAimPreview : MonoBehaviour
     private LineRenderer line;
     private Material lineMaterial;
 
+    private LineRenderer prismLine;
+    private Material prismLineMaterial;
+
     private bool aiming;
     private Vector2 aimDirection =
         Vector2.right;
+
+    private readonly Vector3[] basePoints =
+        new Vector3[64];
+
+    private readonly Vector3[] prismPoints =
+        new Vector3[64];
 
     public void Bind(
         BowController bowController)
@@ -28,8 +39,7 @@ public sealed class CharacterGravityAimPreview : MonoBehaviour
 
         Unsubscribe();
 
-        bow =
-            bowController;
+        bow = bowController;
 
         if (bow == null)
             return;
@@ -52,40 +62,32 @@ public sealed class CharacterGravityAimPreview : MonoBehaviour
         ArcherGameplayTraitProfile gameplayTrait,
         GameConfig gameConfig)
     {
-        arrow =
-            currentArrow;
-
-        trait =
-            gameplayTrait;
+        arrow = currentArrow;
+        trait = gameplayTrait;
 
         config =
             gameConfig != null
                 ? gameConfig
                 : GameConfig.Load();
 
-        aiming =
-            false;
+        aiming = false;
 
         EnsureLine();
+        EnsurePrismLine();
         ApplyStyle();
         Hide();
     }
 
     public void ClearArrow()
     {
-        arrow =
-            null;
-
-        aiming =
-            false;
-
+        arrow = null;
+        aiming = false;
         Hide();
     }
 
     private void OnAimStarted()
     {
-        aiming =
-            true;
+        aiming = true;
     }
 
     private void OnAimChanged(
@@ -100,24 +102,19 @@ public sealed class CharacterGravityAimPreview : MonoBehaviour
         aimDirection =
             direction.normalized;
 
-        aiming =
-            true;
+        aiming = true;
     }
 
     private void OnAimReleased(
         Vector2 ignoredDirection)
     {
-        aiming =
-            false;
-
+        aiming = false;
         Hide();
     }
 
     private void OnAimCancelled()
     {
-        aiming =
-            false;
-
+        aiming = false;
         Hide();
     }
 
@@ -147,18 +144,13 @@ public sealed class CharacterGravityAimPreview : MonoBehaviour
     private void RenderCurve()
     {
         EnsureLine();
+        EnsurePrismLine();
 
         int samples =
             Mathf.Clamp(
                 trait.AimCurveSamples,
                 8,
                 64);
-
-        line.positionCount =
-            samples;
-
-        line.enabled =
-            true;
 
         Vector2 origin =
             arrow.transform.position;
@@ -179,8 +171,7 @@ public sealed class CharacterGravityAimPreview : MonoBehaviour
                 fallbackSpeed);
 
         Vector2 initialVelocity =
-            aimDirection *
-            speed;
+            aimDirection * speed;
 
         Vector2 gravity =
             Physics2D.gravity *
@@ -192,37 +183,171 @@ public sealed class CharacterGravityAimPreview : MonoBehaviour
                 0.4f,
                 3f);
 
-        for (int i = 0;
+        int baseCount = 0;
+        bool prismHit = false;
+        PrismCrystalRuntime hitPrism = null;
+        Vector2 prismHitPoint = default;
+        float prismHitTime = 0f;
+        Vector2 prismIncomingVelocity = default;
+
+        Vector2 previousPosition = origin;
+        float previousTime = 0f;
+
+        basePoints[baseCount++] =
+            new Vector3(
+                origin.x,
+                origin.y,
+                arrow.transform.position.z);
+
+        for (int i = 1;
              i < samples;
              i++)
         {
             float normalized =
-                samples <= 1
-                    ? 0f
-                    : i /
-                      (float)(
-                          samples - 1);
+                i /
+                (float)(samples - 1);
 
             float t =
-                duration *
-                normalized;
+                duration * normalized;
 
             Vector2 position =
                 origin +
-                initialVelocity *
-                    t +
-                0.5f *
-                gravity *
-                t *
-                t;
+                initialVelocity * t +
+                0.5f * gravity * t * t;
 
-            line.SetPosition(
-                i,
+            if (PrismCrystalRuntime
+                .TryFindFirstPreviewHit(
+                    previousPosition,
+                    position,
+                    out PrismCrystalRuntime prism,
+                    out Vector2 hitPoint,
+                    out float segmentT))
+            {
+                float hitTime =
+                    Mathf.Lerp(
+                        previousTime,
+                        t,
+                        segmentT);
+
+                basePoints[baseCount++] =
+                    new Vector3(
+                        hitPoint.x,
+                        hitPoint.y,
+                        arrow.transform.position.z);
+
+                prismHit = true;
+                hitPrism = prism;
+                prismHitPoint = hitPoint;
+                prismHitTime = hitTime;
+                prismIncomingVelocity =
+                    initialVelocity +
+                    gravity * hitTime;
+
+                break;
+            }
+
+            basePoints[baseCount++] =
                 new Vector3(
                     position.x,
                     position.y,
-                    arrow.transform.position.z));
+                    arrow.transform.position.z);
+
+            previousPosition = position;
+            previousTime = t;
         }
+
+        line.positionCount =
+            baseCount;
+
+        for (int i = 0;
+             i < baseCount;
+             i++)
+        {
+            line.SetPosition(
+                i,
+                basePoints[i]);
+        }
+
+        line.enabled =
+            baseCount > 1;
+
+        if (!prismHit ||
+            hitPrism == null)
+        {
+            HidePrismContinuation();
+            PrismCrystalRuntime.ClearPreviewFocus();
+            return;
+        }
+
+        PrismCrystalRuntime.SetPreviewFocus(
+            hitPrism);
+
+        Vector2 outgoingVelocity =
+            hitPrism.GetPreviewOutgoingVelocity(
+                prismIncomingVelocity);
+
+        // Give the redirected preview its own readable time window. The old
+        // version reused only the small amount of the original aim-duration
+        // remaining after the prism contact, which often made the purple path
+        // too short to reach the target on screen.
+        float continuationDuration =
+            Mathf.Clamp(
+                duration * 0.92f,
+                0.95f,
+                1.45f);
+
+        if (outgoingVelocity.sqrMagnitude < 0.0001f)
+        {
+            HidePrismContinuation();
+            return;
+        }
+
+        int continuationSamples =
+            Mathf.Clamp(
+                Mathf.CeilToInt(
+                    samples * 0.86f),
+                18,
+                64);
+
+        for (int i = 0;
+             i < continuationSamples;
+             i++)
+        {
+            float normalized =
+                continuationSamples <= 1
+                    ? 0f
+                    : i /
+                      (float)(continuationSamples - 1);
+
+            float t =
+                continuationDuration *
+                normalized;
+
+            Vector2 position =
+                prismHitPoint +
+                outgoingVelocity * t +
+                0.5f * gravity * t * t;
+
+            prismPoints[i] =
+                new Vector3(
+                    position.x,
+                    position.y,
+                    arrow.transform.position.z);
+        }
+
+        prismLine.positionCount =
+            continuationSamples;
+
+        for (int i = 0;
+             i < continuationSamples;
+             i++)
+        {
+            prismLine.SetPosition(
+                i,
+                prismPoints[i]);
+        }
+
+        prismLine.enabled = true;
     }
 
     private void EnsureLine()
@@ -270,8 +395,7 @@ public sealed class CharacterGravityAimPreview : MonoBehaviour
             if (shader != null)
             {
                 lineMaterial =
-                    new Material(
-                        shader)
+                    new Material(shader)
                     {
                         name =
                             "RuntimeCharacterGravityAimMaterial",
@@ -287,23 +411,82 @@ public sealed class CharacterGravityAimPreview : MonoBehaviour
                 lineMaterial;
         }
 
-        line.useWorldSpace =
-            true;
-
-        line.numCornerVertices =
-            2;
-
-        line.numCapVertices =
-            2;
-
+        line.useWorldSpace = true;
+        line.numCornerVertices = 2;
+        line.numCapVertices = 2;
         line.textureMode =
             LineTextureMode.Stretch;
+        line.sortingOrder = 20;
+        line.enabled = false;
+    }
 
-        line.sortingOrder =
-            20;
+    private void EnsurePrismLine()
+    {
+        if (prismLine != null)
+            return;
 
-        line.enabled =
-            false;
+        Transform existing =
+            transform.Find(
+                "CharacterPrismAimContinuation");
+
+        GameObject lineObject;
+
+        if (existing != null)
+        {
+            lineObject =
+                existing.gameObject;
+        }
+        else
+        {
+            lineObject =
+                new GameObject(
+                    "CharacterPrismAimContinuation");
+
+            lineObject.transform.SetParent(
+                transform,
+                false);
+        }
+
+        prismLine =
+            lineObject.GetComponent<LineRenderer>();
+
+        if (prismLine == null)
+        {
+            prismLine =
+                lineObject.AddComponent<LineRenderer>();
+        }
+
+        if (prismLineMaterial == null)
+        {
+            Shader shader =
+                Shader.Find("Sprites/Default");
+
+            if (shader != null)
+            {
+                prismLineMaterial =
+                    new Material(shader)
+                    {
+                        name =
+                            "RuntimeCharacterPrismAimMaterial",
+                        hideFlags =
+                            HideFlags.DontSave
+                    };
+            }
+        }
+
+        if (prismLineMaterial != null)
+        {
+            prismLine.sharedMaterial =
+                prismLineMaterial;
+        }
+
+        prismLine.useWorldSpace = true;
+        prismLine.numCornerVertices = 3;
+        prismLine.numCapVertices = 3;
+        prismLine.textureMode =
+            LineTextureMode.Stretch;
+        prismLine.sortingOrder = 21;
+        prismLine.enabled = false;
     }
 
     private void ApplyStyle()
@@ -320,12 +503,9 @@ public sealed class CharacterGravityAimPreview : MonoBehaviour
                 0.005f,
                 0.12f);
 
-        line.startWidth =
-            width;
-
+        line.startWidth = width;
         line.endWidth =
-            width *
-            0.58f;
+            width * 0.58f;
 
         Color start =
             trait.AimCurveColor;
@@ -333,23 +513,55 @@ public sealed class CharacterGravityAimPreview : MonoBehaviour
         Color end =
             trait.AimCurveColor;
 
-        end.a *=
-            0.18f;
+        end.a *= 0.18f;
 
-        line.startColor =
-            start;
+        line.startColor = start;
+        line.endColor = end;
 
-        line.endColor =
-            end;
+        if (prismLine != null)
+        {
+            // The post-prism path is intentionally much stronger than the
+            // ordinary aim curve. Green means "before prism"; violet/cyan
+            // means "after prism" and must remain obvious on a bright cavern
+            // background at phone resolution.
+            prismLine.startWidth =
+                width * 2.35f;
+
+            prismLine.endWidth =
+                width * 1.10f;
+
+            prismLine.startColor =
+                new Color(
+                    0.96f,
+                    0.66f,
+                    1f,
+                    1f);
+
+            prismLine.endColor =
+                new Color(
+                    0.24f,
+                    0.98f,
+                    1f,
+                    0.62f);
+        }
+    }
+
+    private void HidePrismContinuation()
+    {
+        if (prismLine != null)
+        {
+            prismLine.enabled = false;
+            prismLine.positionCount = 0;
+        }
     }
 
     private void Hide()
     {
         if (line != null)
-        {
-            line.enabled =
-                false;
-        }
+            line.enabled = false;
+
+        HidePrismContinuation();
+        PrismCrystalRuntime.ClearPreviewFocus();
     }
 
     private void Unsubscribe()
@@ -376,11 +588,14 @@ public sealed class CharacterGravityAimPreview : MonoBehaviour
 
         if (lineMaterial != null)
         {
-            Destroy(
-                lineMaterial);
+            Destroy(lineMaterial);
+            lineMaterial = null;
+        }
 
-            lineMaterial =
-                null;
+        if (prismLineMaterial != null)
+        {
+            Destroy(prismLineMaterial);
+            prismLineMaterial = null;
         }
     }
 }
