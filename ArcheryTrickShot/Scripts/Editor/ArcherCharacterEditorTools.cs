@@ -250,8 +250,21 @@ public static class ArcherCharacterEditorTools
         // shader. This preserves the shader, surface type, culling, render queue
         // and other project-specific settings that made the white source model
         // visible in the first place.
+        // Future Hyper/Mixamo characters must use the same known-good URP/Lit
+        // material contract as the already-shipping characters. The imported
+        // Mixamo FBX often carries a plain white/placeholder material; cloning
+        // that material is exactly what caused Ember to render as a white
+        // silhouette in the menu and gameplay. Prefer a proven production PBR
+        // material, then fall back to the model material only if the project
+        // template is unavailable.
         Material sourceTemplate =
-            FindSourceTemplateMaterial(profile.ArcherPrefab);
+            LoadProductionCharacterMaterialTemplate();
+
+        if (sourceTemplate == null)
+        {
+            sourceTemplate =
+                FindSourceTemplateMaterial(profile.ArcherPrefab);
+        }
 
         if (material == null)
         {
@@ -507,6 +520,29 @@ public static class ArcherCharacterEditorTools
 
         if (changed)
             importer.SaveAndReimport();
+    }
+
+    private static Material LoadProductionCharacterMaterialTemplate()
+    {
+        // Nerissa and Khaem already render correctly through this project's
+        // Universal Render Pipeline setup. Reusing that shader/property layout
+        // makes new Hyper3D characters deterministic instead of depending on
+        // whatever placeholder material Mixamo happened to embed in the FBX.
+        const string nerissaMaterialPath =
+            "Assets/ArcheryTrickShot/Characters/Nerissa/Nerissa_PBR.mat";
+
+        Material template =
+            AssetDatabase.LoadAssetAtPath<Material>(
+                nerissaMaterialPath);
+
+        if (template != null)
+            return template;
+
+        const string khaemMaterialPath =
+            "Assets/ArcheryTrickShot/Characters/Khaem/Materials/Khaem_PBR.mat";
+
+        return AssetDatabase.LoadAssetAtPath<Material>(
+            khaemMaterialPath);
     }
 
     private static Material FindSourceTemplateMaterial(

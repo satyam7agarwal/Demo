@@ -1180,6 +1180,8 @@ public sealed class ATSFrontendController : MonoBehaviour
             return "WARRIOR ARCHER";
         if (profile.CharacterId.Equals("nerissa", System.StringComparison.OrdinalIgnoreCase))
             return "RANGER ARCHER";
+        if (profile.CharacterId.Equals("ember", System.StringComparison.OrdinalIgnoreCase))
+            return "FIRE ARCHER";
         return "ARCHER";
     }
 

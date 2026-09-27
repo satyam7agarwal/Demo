@@ -1043,32 +1043,27 @@ public sealed class BowController : MonoBehaviour
         if (arrow == null)
             return;
 
-        // While held by a generic Humanoid/Mixamo archer, the visible arrow
-        // MUST lie on the real draw-fingers -> bow-grip line. Previously it was
-        // rotated directly from pointer/gameplay aim, so it passed above the
-        // bow hand when aiming up and below it when aiming down.
+        // While the arrow is HELD, its POSITION follows the animated bow/string
+        // nock, but its ROTATION must always follow the exact gameplay aim.
         //
-        // Archer3DVisualController now corrects that pose line toward the exact
-        // gameplay direction, so this gives both natural contact AND gameplay
-        // consistency. CommitShot still fires with currentAimDirection exactly
-        // as before; projectile physics is unchanged.
-        bool useHumanoidPoseLine =
-            archerVisual != null &&
-            archerProfile != null &&
-            archerProfile.SocketBindingMode ==
-                ArcherSocketBindingMode.HumanoidAutoFingerSockets;
-
+        // Do not derive held-arrow direction from the hand-to-hand pose line.
+        // When the player relaxes the string, the draw hand approaches the bow
+        // hand and that short vector becomes numerically/visually unstable; tiny
+        // retargeting differences can then make the arrow appear to deflect or
+        // flip even though the projectile still fires in the correct direction.
+        //
+        // The character/bow presentation may remain smoothed/retargeted, but
+        // currentAimDirection is the single source of truth for trajectory,
+        // held-arrow orientation, and release physics.
         Vector2 visualDirection =
-            useHumanoidPoseLine
-                ? archerVisual.PoseDirection
-                : isAiming
-                    ? currentAimDirection
-                    : archerVisual != null
-                        ? archerVisual.PoseDirection
-                        : currentAimDirection;
-
-        if (visualDirection.sqrMagnitude < 0.0001f)
-            visualDirection = currentAimDirection;
+            isAiming && currentAimDirection.sqrMagnitude > 0.0001f
+                ? currentAimDirection.normalized
+                : archerVisual != null &&
+                  archerVisual.PoseDirection.sqrMagnitude > 0.0001f
+                    ? archerVisual.PoseDirection.normalized
+                    : currentAimDirection.sqrMagnitude > 0.0001f
+                        ? currentAimDirection.normalized
+                        : Vector2.right;
 
         arrow.SetDirection(visualDirection);
 

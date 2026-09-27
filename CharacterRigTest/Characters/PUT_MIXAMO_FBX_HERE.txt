@@ -1,0 +1,6 @@
+Put rigged character FBX files (or prefabs) in this folder.
+
+Recommended first test: Ember.
+
+After adding/removing a character, run:
+Tools > Archery Trick Shot > Character Rig Test > Create or Refresh Test Scene

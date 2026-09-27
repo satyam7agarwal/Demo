@@ -8,8 +8,10 @@ using UnityEngine;
 /// One-click onboarding for the project's normal future character source:
 /// Hyper/Mixamo-style Humanoid models/prefabs.
 ///
-/// Select the imported Humanoid GameObject asset, then run:
+/// Select an imported Humanoid GameObject asset, then run either:
 /// Tools > Archery Trick Shot > Characters > Create Hyper-Mixamo Archer From Selected
+/// or the convenience command:
+/// Tools > Archery Trick Shot > Characters > Create + Select Hyper-Mixamo Archer From Selected
 ///
 /// The created profile reuses the common archery Animator + bow and enables the
 /// runtime automatic finger sockets. No scene/level/BowController edits are made.
@@ -40,6 +42,27 @@ public static class ArcherHumanoidAutoProfileTool
         "Tools/Archery Trick Shot/Characters/Create Hyper-Mixamo Archer From Selected")]
     private static void CreateFromSelected()
     {
+        CreateFromSelectedInternal(false);
+    }
+
+    [MenuItem(
+        "Tools/Archery Trick Shot/Characters/Create + Select Hyper-Mixamo Archer From Selected",
+        true)]
+    private static bool ValidateCreateAndSelectFromSelected()
+    {
+        return Selection.activeObject is GameObject;
+    }
+
+    [MenuItem(
+        "Tools/Archery Trick Shot/Characters/Create + Select Hyper-Mixamo Archer From Selected")]
+    private static void CreateAndSelectFromSelected()
+    {
+        CreateFromSelectedInternal(true);
+    }
+
+    private static void CreateFromSelectedInternal(
+        bool selectForGameplay)
+    {
         GameObject selected = Selection.activeObject as GameObject;
 
         if (selected == null)
@@ -47,6 +70,30 @@ public static class ArcherHumanoidAutoProfileTool
             EditorUtility.DisplayDialog(
                 "Create Archer",
                 "Select an imported Humanoid model or prefab in the Project window first.",
+                "OK");
+            return;
+        }
+
+        Animator sourceAnimator =
+            selected.GetComponentInChildren<Animator>(true);
+
+        if (sourceAnimator == null)
+        {
+            EditorUtility.DisplayDialog(
+                "Create Archer",
+                "The selected asset has no Animator. Import/rig it as a Humanoid first.",
+                "OK");
+            return;
+        }
+
+        if (sourceAnimator.avatar == null ||
+            !sourceAnimator.avatar.isValid ||
+            !sourceAnimator.avatar.isHuman)
+        {
+            EditorUtility.DisplayDialog(
+                "Create Archer",
+                "The selected asset does not have a valid Humanoid Avatar.\n\n" +
+                "Select the FBX, set Rig > Animation Type = Humanoid, Apply, then run this command again.",
                 "OK");
             return;
         }
@@ -68,7 +115,12 @@ public static class ArcherHumanoidAutoProfileTool
 
         EnsureFolder(CharacterProfilesFolder);
 
-        string characterId = ToStableId(selected.name);
+        string displayName =
+            GetCleanDisplayName(selected.name);
+
+        string characterId =
+            ToStableId(displayName);
+
         string profilePath =
             CharacterProfilesFolder + "/" + characterId + "Archer3D.asset";
 
@@ -85,7 +137,8 @@ public static class ArcherHumanoidAutoProfileTool
         }
 
         profile.CharacterId = characterId;
-        profile.DisplayName = selected.name;
+        profile.DisplayName = displayName;
+        profile.PlayerSelectable = true;
         profile.ArcherPrefab = selected;
 
         // Reuse the common project-owned animation/bow contract.
@@ -149,8 +202,27 @@ public static class ArcherHumanoidAutoProfileTool
             profile,
             false);
 
+        if (selectForGameplay)
+        {
+            if (!roster.SelectCharacter(profile.CharacterId))
+            {
+                EditorUtility.DisplayDialog(
+                    "Create Archer",
+                    "The profile was created, but it could not be selected from ArcherCharacterRoster.",
+                    "OK");
+                return;
+            }
+
+            ArcherCharacterRoster.InvalidateRuntimeSelectionCache();
+        }
+
         Selection.activeObject = profile;
         EditorGUIUtility.PingObject(profile);
+
+        string selectionMessage =
+            selectForGameplay
+                ? "\n\nThe character is also selected for the next Play Mode."
+                : "\n\nUse 'Use Selected Archer Profile' when you want to test this character.";
 
         EditorUtility.DisplayDialog(
             "Scalable Humanoid Archer Ready",
@@ -162,8 +234,10 @@ public static class ArcherHumanoidAutoProfileTool
             "• Finger-derived string/arrow nock socket\n" +
             "• Stable camera-facing bow plane\n" +
             "• Existing common archery animations and bow\n" +
-            "• Nearby Hyper3D PBR textures become safe runtime material overrides\n\n" +
-            "No scene, level, projectile, mirror, scoring, or BowController changes were made.",
+            "• Nearby Hyper3D PBR textures become safe runtime material overrides\n" +
+            "• Rig/Mixamo suffixes are removed from the player-facing name/ID\n\n" +
+            "No scene, level, projectile, mirror, scoring, or BowController changes were made." +
+            selectionMessage,
             "OK");
     }
 
@@ -179,6 +253,57 @@ public static class ArcherHumanoidAutoProfileTool
         float deltaToNegative90 = Mathf.Abs(Mathf.DeltaAngle(y, -90f));
 
         return Mathf.Min(deltaToPositive90, deltaToNegative90) <= 20f;
+    }
+
+    private static string GetCleanDisplayName(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "Archer";
+
+        string result = value.Trim();
+
+        string[] suffixes =
+        {
+            "_Rigged",
+            "-Rigged",
+            " Rigged",
+            "_Mixamo",
+            "-Mixamo",
+            " Mixamo",
+            "_Humanoid",
+            "-Humanoid",
+            " Humanoid"
+        };
+
+        bool removed;
+        do
+        {
+            removed = false;
+
+            for (int i = 0; i < suffixes.Length; i++)
+            {
+                string suffix = suffixes[i];
+
+                if (!result.EndsWith(
+                        suffix,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                result = result
+                    .Substring(0, result.Length - suffix.Length)
+                    .Trim(' ', '_', '-');
+
+                removed = true;
+                break;
+            }
+        }
+        while (removed && result.Length > 0);
+
+        return string.IsNullOrWhiteSpace(result)
+            ? "Archer"
+            : result;
     }
 
     private static string ToStableId(string value)
