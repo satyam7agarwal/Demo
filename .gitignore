@@ -3,3 +3,4 @@ Thumbs.db
 *.apk
 *.aab
 _Recovery/
+_Recovery.meta
