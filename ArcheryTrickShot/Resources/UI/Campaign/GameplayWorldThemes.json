@@ -9,20 +9,20 @@
     {
       "minLevel": 11,
       "maxLevel": 13,
-      "backgroundResource": "Art/Backgrounds/CrystalCaverns_Entrance",
-      "fallbackResource": ""
+      "backgroundResource": "Art/Backgrounds/World2/CrystalCaverns_Entrance",
+      "fallbackResource": "Art/Backgrounds/CrystalCaverns_Entrance"
     },
     {
       "minLevel": 14,
       "maxLevel": 17,
-      "backgroundResource": "Art/Backgrounds/CrystalCaverns_Deep",
-      "fallbackResource": "Art/Backgrounds/CrystalCaverns_Entrance"
+      "backgroundResource": "Art/Backgrounds/World2/CrystalCaverns_Deep",
+      "fallbackResource": "Art/Backgrounds/World2/CrystalCaverns_Entrance"
     },
     {
       "minLevel": 18,
       "maxLevel": 20,
-      "backgroundResource": "Art/Backgrounds/CrystalCaverns_Sanctum",
-      "fallbackResource": "Art/Backgrounds/CrystalCaverns_Entrance"
+      "backgroundResource": "Art/Backgrounds/World2/CrystalCaverns_Sanctum",
+      "fallbackResource": "Art/Backgrounds/World2/CrystalCaverns_Deep"
     }
   ]
 }

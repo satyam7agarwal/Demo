@@ -126,6 +126,44 @@ public sealed class TargetVisualFacing : MonoBehaviour
         target?.ApplyFacing(faceRight);
     }
 
+    /// <summary>
+    /// Data-driven presentation override. The normal target keeps its pedestal;
+    /// levels whose environment art already supplies a ledge can hide it without
+    /// changing the shared target prefab or disabling target scoring geometry.
+    /// </summary>
+    public void SetPedestalVisible(bool visible)
+    {
+        ResolveRenderer();
+
+        if (visible)
+        {
+            EnsurePedestal();
+
+            if (pedestalRenderer != null)
+            {
+                pedestalRenderer.gameObject.SetActive(true);
+                PositionPedestalBelowTarget();
+            }
+
+            return;
+        }
+
+        Transform visualRoot =
+            bodyRenderer != null && bodyRenderer.transform.parent != null
+                ? bodyRenderer.transform.parent
+                : transform.Find("VisualRoot");
+
+        Transform pedestal =
+            visualRoot != null
+                ? visualRoot.Find(PedestalObjectName)
+                : null;
+
+        if (pedestal != null)
+        {
+            pedestal.gameObject.SetActive(false);
+        }
+    }
+
     public void ApplyFacing(
         LevelData.TargetFacing facing,
         float archerWorldX)
@@ -185,6 +223,7 @@ public sealed class TargetVisualFacing : MonoBehaviour
         if (pedestalRenderer == null)
             return;
 
+        pedestalRenderer.gameObject.SetActive(true);
         pedestalRenderer.sprite = cachedPedestalSprite;
         pedestalRenderer.color = Color.white;
         pedestalRenderer.transform.localRotation = Quaternion.identity;

@@ -44,6 +44,19 @@ public sealed class LevelData : ScriptableObject
     public GateData[] Gates = new GateData[0];
     public FlyingBirdData[] FlyingBirds = new FlyingBirdData[0];
 
+    [Header("Level Presentation")]
+    [Tooltip(
+        "Pure visual sprites layered over the world background. " +
+        "Keep gameplay collision in PresentationColliders so art can be adjusted independently.")]
+    public PresentationSpriteData[] PresentationSprites =
+        new PresentationSpriteData[0];
+
+    [Tooltip(
+        "Simple authored collision geometry for presentation/environment art. " +
+        "These colliders are spawned generically for any level that declares them.")]
+    public PresentationColliderData[] PresentationColliders =
+        new PresentationColliderData[0];
+
     [Header("Crystal Caverns")]
     [Tooltip("Arrow-reactive switches. Matching CrystalGates open when a crystal is crossed.")]
     public ResonanceCrystalData[] ResonanceCrystals = new ResonanceCrystalData[0];
@@ -82,6 +95,12 @@ public sealed class LevelData : ScriptableObject
         Clockwork = 4
     }
 
+    public enum PresentationColliderShape
+    {
+        Box = 0,
+        Polygon = 1
+    }
+
     [System.Serializable]
     public class PlacementData
     {
@@ -95,6 +114,11 @@ public sealed class LevelData : ScriptableObject
     {
         public TargetFacing Facing = TargetFacing.Auto;
         public TargetStyle Style = TargetStyle.Wood;
+
+        [Tooltip(
+            "Hide the target's generic stone pedestal when authored environment art " +
+            "already provides a natural supporting ledge.")]
+        public bool HidePedestalBase = false;
     }
 
     [System.Serializable]
@@ -138,6 +162,53 @@ public sealed class LevelData : ScriptableObject
         [Min(0f)] public float BobAmplitude = 0.28f;
         [Min(0.1f)] public float BobSpeed = 2.1f;
         public bool ConsumeArrowOnHit = true;
+    }
+
+    [System.Serializable]
+    public sealed class PresentationSpriteData : PlacementData
+    {
+        [Tooltip("Optional hierarchy name. Used only for readability/debugging.")]
+        public string Name = string.Empty;
+
+        [Tooltip("Resources-relative Sprite path, without extension.")]
+        public string ResourcePath = string.Empty;
+
+        [Tooltip(
+            "When greater than zero, the runtime scales the sprite uniformly to this world width. " +
+            "This keeps authored art resolution independent from gameplay layout.")]
+        [Min(0f)] public float WorldWidth = 0f;
+
+        public float Depth = 0f;
+        public int SortingOrder = 0;
+        public bool FlipX = false;
+        public bool FlipY = false;
+    }
+
+    [System.Serializable]
+    public sealed class PresentationColliderData : PlacementData
+    {
+        [Tooltip("Optional hierarchy name. Used only for readability/debugging.")]
+        public string Name = string.Empty;
+
+        [Tooltip(
+            "Optional PresentationSprite Name to follow. When set, this collider is parented " +
+            "under that visual so WorldWidth/resizing automatically scales the collision too. " +
+            "Position/Rotation/Scale then act as local offsets relative to the matched visual.")]
+        public string MatchVisual = string.Empty;
+
+        public PresentationColliderShape Shape =
+            PresentationColliderShape.Box;
+
+        [Tooltip("Local size for Box colliders.")]
+        public Vector2 Size = Vector2.one;
+
+        [Tooltip("Local offset for Box colliders.")]
+        public Vector2 Offset = Vector2.zero;
+
+        [Tooltip("Local points for Polygon colliders, in winding order.")]
+        public Vector2[] Points = new Vector2[0];
+
+        public bool IsTrigger = false;
     }
 
     [System.Serializable]
