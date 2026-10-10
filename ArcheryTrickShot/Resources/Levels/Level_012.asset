@@ -16,35 +16,75 @@ MonoBehaviour:
   MaxShots: 3
   IsGameFinale: 0
   ThreeStarShotLimit: 1
-  ArcherPosition: {x: -7, y: -2.4}
+  ArcherPosition: {x: -7, y: -1.12}
   RequiredCharacterId: nerissa
   MaxRewardedRicochetMirrors: 0
   Targets:
-  - Position: {x: 7.15, y: -1.0}
+  - Position: {x: 5.3, y: -0.16}
     Rotation: 0
-    Scale: {x: 0.36, y: 0.36}
+    Scale: {x: 0.29, y: 0.29}
     Facing: 0
     Style: 2
-  Walls:
-  - Position: {x: -2.20, y: -1.95}
-    Rotation: 0
-    Scale: {x: 0.58, y: 0.70}
+    HidePedestalBase: 1
+  Walls: []
   Mirrors: []
   BonusProps: []
   Collectibles: []
   Gates: []
   FlyingBirds: []
+  PresentationSprites:
+  - Position: {x: -8.3, y: -3.7}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: Entrance_LeftPlatform
+    ResourcePath: Art/Gameplay/World2/Environment/CrystalPlatform_Left
+    WorldWidth: 7
+    Depth: 0.14
+    SortingOrder: 2
+    FlipX: 0
+    FlipY: 0
+  - Position: {x: 3.6, y: -0.57}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: ResonantGate_Chamber
+    ResourcePath: Art/Gameplay/World2/Environment/CrystalGateChamber_Right
+    WorldWidth: 8.6
+    Depth: 0.08
+    SortingOrder: 2
+    FlipX: 0
+    FlipY: 0
+  PresentationColliders:
+  - Position: {x: 0.8, y: -2.57}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: ResonantGate_ChamberFloor_Collision
+    MatchVisual: ResonantGate_Chamber
+    Shape: 0
+    Size: {x: 12, y: 2.0}
+    Offset: {x: 0, y: 0}
+    Points: []
+    IsTrigger: 0
+  - Position: {x: 2.25, y: 3.62}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: ResonantGate_ChamberArch_Collision
+    MatchVisual: ResonantGate_Chamber
+    Shape: 0
+    Size: {x: 6.0, y: 1.55}
+    Offset: {x: 0, y: 0}
+    Points: []
+    IsTrigger: 0
   ResonanceCrystals:
-  - Position: {x: -0.45, y: 0.95}
+  - Position: {x: -0.65, y: 0.74}
     Rotation: 0
-    Scale: {x: 0.24, y: 0.24}
+    Scale: {x: 0.27, y: 0.27}
     UnlockGroupId: crystal_path
-    TriggerRadius: 0.78
+    TriggerRadius: 0.82
   CrystalGates:
-  - Position: {x: 4.25, y: -0.35}
+  - Position: {x: 3.39, y: 0.05}
     Rotation: 0
-    Scale: {x: 0.72, y: 0.90}
+    Scale: {x: 0.42, y: 1.35}
     UnlockGroupId: crystal_path
-    OpenOffset: {x: 0, y: 3.45}
+    OpenOffset: {x: 0, y: 3.55}
     OpenDuration: 0.22
   PrismCrystals: []

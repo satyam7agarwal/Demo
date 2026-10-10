@@ -16,33 +16,97 @@ MonoBehaviour:
   MaxShots: 3
   IsGameFinale: 0
   ThreeStarShotLimit: 1
-  ArcherPosition: {x: -7, y: -2.4}
+  ArcherPosition: {x: -7, y: -1.12}
   RequiredCharacterId: nerissa
   MaxRewardedRicochetMirrors: 0
   Targets:
-  - Position: {x: 7.2, y: -1.23}
+  - Position: {x: 7.15, y: -1.25}
     Rotation: 0
-    Scale: {x: 0.36, y: 0.36}
+    Scale: {x: 0.34, y: 0.34}
     Facing: 0
     Style: 2
-  Walls:
-  - Position: {x: 0.95, y: -1.75}
-    Rotation: 0
-    Scale: {x: 0.86, y: 0.92}
-  - Position: {x: 3.15, y: -2.35}
-    Rotation: 90
-    Scale: {x: 0.72, y: 0.62}
+    HidePedestalBase: 1
+  Walls: []
   Mirrors: []
   BonusProps: []
   Collectibles: []
   Gates: []
   FlyingBirds: []
+  PresentationSprites:
+  - Position: {x: -8.3, y: -3.7}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: Entrance_LeftPlatform
+    ResourcePath: Art/Gameplay/World2/Environment/CrystalPlatform_Left
+    WorldWidth: 7
+    Depth: 0.14
+    SortingOrder: 2
+    FlipX: 0
+    FlipY: 0
+  - Position: {x: -0.42, y: -1.99}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: PrismDrop_CenterSpire
+    ResourcePath: Art/Gameplay/World2/Environment/CrystalSpire_Tall
+    WorldWidth: 7.1
+    Depth: -0.03
+    SortingOrder: 8
+    FlipX: 0
+    FlipY: 0
+  - Position: {x: 8.2, y: -4.05}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: Entrance_RightTargetLedge
+    ResourcePath: Art/Gameplay/World2/Environment/CrystalLedge_Right
+    WorldWidth: 7
+    Depth: 0.14
+    SortingOrder: 2
+    FlipX: 0
+    FlipY: 0
+  PresentationColliders:
+  - Position: {x: 0, y: 0}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: PrismDrop_CenterSpire_Collision
+    MatchVisual: PrismDrop_CenterSpire
+    Shape: 1
+    Size: {x: 1, y: 1}
+    Offset: {x: 0, y: 0}
+    Points:
+    - {x: 0.89, y: 7.17}
+    - {x: -0.61, y: 5.72}
+    - {x: 0.22, y: 2.41}
+    - {x: -1.57, y: -0.18}
+    - {x: -0.74, y: -1.83}
+    - {x: -1.73, y: -3.83}
+    - {x: -2.26, y: -3.39}
+    - {x: -2.24, y: -4.82}
+    - {x: -4.88, y: -7.13}
+    - {x: 4.9, y: -7.06}
+    - {x: 4.3, y: -4.52}
+    - {x: 3.15, y: -4.54}
+    - {x: 3.09, y: -2.44}
+    - {x: 2.11, y: -1.77}
+    - {x: 1.84, y: 0.07}
+    - {x: 3.27, y: 2.57}
+    - {x: 0.98, y: 4.65}
+    IsTrigger: 0
+  - Position: {x: 0.08957, y: 2.06014}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: Entrance_RightLedge_Collision
+    MatchVisual: Entrance_RightTargetLedge
+    Shape: 0
+    Size: {x: 10.39029, y: 1.61229}
+    Offset: {x: 0, y: 0}
+    Points: []
+    IsTrigger: 0
   ResonanceCrystals: []
   CrystalGates: []
   PrismCrystals:
-  - Position: {x: -0.35, y: 1.90}
+  - Position: {x: -0.12, y: 4.13}
     Rotation: 0
-    Scale: {x: 0.22, y: 0.22}
-    ExitAngle: -18
-    SpeedMultiplier: 1.12
-    TriggerRadius: 0.82
+    Scale: {x: 0.36, y: 0.36}
+    ExitAngle: -31
+    SpeedMultiplier: 1.25
+    TriggerRadius: 0.9
