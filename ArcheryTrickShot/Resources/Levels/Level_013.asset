@@ -20,7 +20,7 @@ MonoBehaviour:
   RequiredCharacterId: nerissa
   MaxRewardedRicochetMirrors: 0
   Targets:
-  - Position: {x: 7.15, y: -1.25}
+  - Position: {x: 6.62, y: -1.25}
     Rotation: 0
     Scale: {x: 0.34, y: 0.34}
     Facing: 0
@@ -33,7 +33,7 @@ MonoBehaviour:
   Gates: []
   FlyingBirds: []
   PresentationSprites:
-  - Position: {x: -8.3, y: -3.7}
+  - Position: {x: -8.94, y: -3.7}
     Rotation: 0
     Scale: {x: 1, y: 1}
     Name: Entrance_LeftPlatform
@@ -109,4 +109,4 @@ MonoBehaviour:
     Scale: {x: 0.36, y: 0.36}
     ExitAngle: -31
     SpeedMultiplier: 1.25
-    TriggerRadius: 0.9
+    TriggerRadius: 0.45

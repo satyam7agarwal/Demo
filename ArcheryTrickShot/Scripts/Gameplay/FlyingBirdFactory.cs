@@ -15,20 +15,49 @@ public static class FlyingBirdFactory
         if (data == null)
             return null;
 
+        bool hasCustomVisual =
+            !string.IsNullOrWhiteSpace(
+                data.VisualResourcePath);
+
+        string primaryPath =
+            hasCustomVisual
+                ? data.VisualResourcePath.Trim()
+                : WingUpPath;
+
         Sprite wingUp =
             Resources.Load<Sprite>(
-                WingUpPath);
+                primaryPath);
 
-        Sprite wingDown =
-            Resources.Load<Sprite>(
-                WingDownPath);
+        Sprite wingDown = null;
+
+        if (hasCustomVisual)
+        {
+            string alternatePath =
+                string.IsNullOrWhiteSpace(
+                    data.AlternateVisualResourcePath)
+                    ? primaryPath
+                    : data.AlternateVisualResourcePath.Trim();
+
+            wingDown =
+                Resources.Load<Sprite>(
+                    alternatePath);
+        }
+        else
+        {
+            wingDown =
+                Resources.Load<Sprite>(
+                    WingDownPath);
+        }
 
         if (wingUp == null)
         {
             Debug.LogError(
-                $"FlyingBirdFactory: Missing sprite at Resources/{WingUpPath}.");
+                $"FlyingBirdFactory: Missing sprite at Resources/{primaryPath}.");
             return null;
         }
+
+        if (wingDown == null)
+            wingDown = wingUp;
 
         GameObject birdObject =
             new GameObject(
@@ -65,10 +94,24 @@ public static class FlyingBirdFactory
                 ? parentLossyScale.y
                 : 1f;
 
+        float fitScale = 1f;
+
+        if (data.VisualWorldWidth > 0.001f &&
+            wingUp.bounds.size.x > 0.001f)
+        {
+            fitScale =
+                data.VisualWorldWidth /
+                wingUp.bounds.size.x;
+        }
+
         birdObject.transform.localScale =
             new Vector3(
-                data.Scale.x / safeParentX,
-                data.Scale.y / safeParentY,
+                data.Scale.x *
+                    fitScale /
+                    safeParentX,
+                data.Scale.y *
+                    fitScale /
+                    safeParentY,
                 1f);
 
         SpriteRenderer renderer =
@@ -97,7 +140,8 @@ public static class FlyingBirdFactory
             data.BobAmplitude,
             data.BobSpeed,
             data.UnlockGroupId,
-            data.ConsumeArrowOnHit);
+            data.ConsumeArrowOnHit,
+            data.HitboxWorldSize);
 
         return target;
     }

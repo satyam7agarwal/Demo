@@ -1,0 +1,85 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6893232cd05807d4ba9e180501d88967, type: 3}
+  m_Name: Level_015
+  m_EditorClassIdentifier: Assembly-CSharp::LevelData
+  LevelNumber: 15
+  MaxShots: 3
+  IsGameFinale: 0
+  ThreeStarShotLimit: 1
+  ArcherPosition: {x: -7, y: -1.1}
+  RequiredCharacterId: nerissa
+  MaxRewardedRicochetMirrors: 0
+  Targets:
+  - Position: {x: 7.15, y: -0.95}
+    Rotation: 0
+    Scale: {x: 0.34, y: 0.34}
+    Facing: 0
+    Style: 2
+    HidePedestalBase: 1
+  Walls: []
+  Mirrors: []
+  BonusProps: []
+  Collectibles: []
+  Gates: []
+  FlyingBirds: []
+  PresentationSprites:
+  - Position: {x: -8.94, y: -3.7}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: Deep_LeftPlatform
+    ResourcePath: Art/Gameplay/World2/Environment/CrystalPlatform_Left
+    WorldWidth: 7
+    Depth: 0.14
+    SortingOrder: 2
+    FlipX: 0
+    FlipY: 0
+  - Position: {x: 8.2, y: -4.05}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: Deep_RightTargetLedge
+    ResourcePath: Art/Gameplay/World2/Environment/CrystalLedge_Right
+    WorldWidth: 7
+    Depth: 0.14
+    SortingOrder: 2
+    FlipX: 0
+    FlipY: 0
+  PresentationColliders:
+  - Position: {x: 0.08957, y: 2.06014}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: Deep_RightLedge_Collision
+    MatchVisual: Deep_RightTargetLedge
+    Shape: 0
+    Size: {x: 10.39029, y: 1.61229}
+    Offset: {x: 0, y: 0}
+    Points: []
+    IsTrigger: 0
+  ResonanceCrystals: []
+  CrystalGates: []
+  PrismCrystals: []
+  VanishingObstacles:
+  - Position: {x: 0.45, y: -0.75}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    ResourcePath: Art/Gameplay/World2/Environment/CrystalObelisk_Vanishing
+    WorldWidth: 8
+    HitboxWorldSize: {x: 1.95, y: 7.5}
+    HitboxOffset: {x: 0.05, y: 0.1}
+    SortingOrder: 9
+    StartDelay: 0.30
+    VisibleDuration: 1.10
+    WarningDuration: 0.45
+    DisappearDuration: 0.25
+    HiddenDuration: 1.35
+    ReappearWarningDuration: 0.35
+    ReappearDuration: 0.30

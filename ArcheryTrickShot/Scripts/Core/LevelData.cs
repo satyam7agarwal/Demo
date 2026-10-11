@@ -67,6 +67,24 @@ public sealed class LevelData : ScriptableObject
     [Tooltip("Fixed-exit prisms. Gravity continues normally after redirection.")]
     public PrismCrystalData[] PrismCrystals = new PrismCrystalData[0];
 
+    [Tooltip(
+        "Authored obstacles that warn, dissolve completely, stay absent for a fair shooting window, " +
+        "then telegraph and materialize again. The mechanic is generic and reusable across levels.")]
+    public VanishingObstacleData[] VanishingObstacles =
+        new VanishingObstacleData[0];
+
+    [Tooltip(
+        "Living crystal serpents that telegraph beneath the water, emerge on a deterministic cycle, " +
+        "and can unlock CrystalGates through a weak-point hit.")]
+    public AbyssalSerpentData[] AbyssalSerpents =
+        new AbyssalSerpentData[0];
+
+    [Tooltip(
+        "Paired one-way crystal rifts. The arrow enters the EntryPosition and is moved to " +
+        "ExitPosition while preserving its instantaneous velocity; gravity continues normally.")]
+    public CrystalRiftPairData[] CrystalRifts =
+        new CrystalRiftPairData[0];
+
     public enum CollectibleStyle
     {
         GoldenMedallion = 0
@@ -162,6 +180,27 @@ public sealed class LevelData : ScriptableObject
         [Min(0f)] public float BobAmplitude = 0.28f;
         [Min(0.1f)] public float BobSpeed = 2.1f;
         public bool ConsumeArrowOnHit = true;
+
+        [Header("Optional Creature Presentation")]
+        [Tooltip(
+            "Optional Resources-relative sprite path. Empty preserves the legacy EvilBird visual. " +
+            "Use this to present the same generic flying-target mechanic as bats or other creatures.")]
+        public string VisualResourcePath = string.Empty;
+
+        [Tooltip(
+            "Optional alternate sprite used by the existing wing-cycle animation. " +
+            "When empty, VisualResourcePath is reused so authored single-frame creatures remain stable.")]
+        public string AlternateVisualResourcePath = string.Empty;
+
+        [Tooltip(
+            "Optional final world width for the creature sprite. " +
+            "0 preserves the legacy scale behavior.")]
+        [Min(0f)]
+        public float VisualWorldWidth = 0f;
+
+        [Tooltip(
+            "Optional world-space hitbox size. Zero keeps the legacy 1.48 x 0.72 local capsule.")]
+        public Vector2 HitboxWorldSize = Vector2.zero;
     }
 
     [System.Serializable]
@@ -225,6 +264,26 @@ public sealed class LevelData : ScriptableObject
         public string UnlockGroupId = "default";
         public Vector2 OpenOffset = new Vector2(0f, 3.2f);
         [Min(0.08f)] public float OpenDuration = 0.24f;
+
+        [Header("Optional Gate Presentation")]
+        [Tooltip(
+            "Optional Resources-relative authored gate sprite. Empty preserves the existing two-leaf gate.")]
+        public string VisualResourcePath = string.Empty;
+
+        [Tooltip(
+            "Optional final world width of the authored gate sprite. " +
+            "0 keeps the sprite's imported size.")]
+        [Min(0f)]
+        public float VisualWorldWidth = 0f;
+
+        [Tooltip("Local visual offset relative to the CrystalGate root.")]
+        public Vector2 VisualOffset = Vector2.zero;
+
+        [Tooltip(
+            "When true, the legacy leaf renderers are hidden but their proven physical colliders remain active.")]
+        public bool HideDefaultVisual = false;
+
+        public int VisualSortingOrder = 9;
     }
 
     [System.Serializable]
@@ -235,6 +294,162 @@ public sealed class LevelData : ScriptableObject
         [Range(0.5f, 1.5f)] public float SpeedMultiplier = 1f;
         [Range(0.6f, 1.8f)] public float TriggerRadius = 0.82f;
     }
+
+    [System.Serializable]
+    public sealed class VanishingObstacleData : PlacementData
+    {
+        [Tooltip("Resources-relative Sprite path, without extension.")]
+        public string ResourcePath = string.Empty;
+
+        [Tooltip(
+            "Final sprite width in world units. 0 keeps the imported sprite size. " +
+            "Placement Scale is applied after this fit.")]
+        [Min(0f)]
+        public float WorldWidth = 0f;
+
+        [Tooltip("World-space blocking size while the obstacle is solid.")]
+        public Vector2 HitboxWorldSize =
+            new Vector2(1.5f, 4f);
+
+        [Tooltip("World-space offset of the blocking box from the visual pivot.")]
+        public Vector2 HitboxOffset =
+            Vector2.zero;
+
+        public int SortingOrder = 8;
+
+        [Tooltip("Optional initial delay before the first warning.")]
+        [Min(0f)]
+        public float StartDelay = 0.25f;
+
+        [Tooltip("How long the stone remains fully solid before its warning begins.")]
+        [Min(0.05f)]
+        public float VisibleDuration = 1.10f;
+
+        [Tooltip("Readable glow/crack warning before the stone dissolves.")]
+        [Min(0.05f)]
+        public float WarningDuration = 0.45f;
+
+        [Tooltip("Fade/dissolve duration. Collision remains until the stone is almost gone.")]
+        [Min(0.05f)]
+        public float DisappearDuration = 0.25f;
+
+        [Tooltip("True open shooting window: renderer hidden and collision disabled.")]
+        [Min(0.10f)]
+        public float HiddenDuration = 1.30f;
+
+        [Tooltip(
+            "Ghost shimmer before the obstacle returns. It is still non-colliding during this warning.")]
+        [Min(0f)]
+        public float ReappearWarningDuration = 0.35f;
+
+        [Tooltip("Materialization duration. Collision is restored only when fully visible.")]
+        [Min(0.05f)]
+        public float ReappearDuration = 0.30f;
+    }
+
+    [System.Serializable]
+    public sealed class AbyssalSerpentData : PlacementData
+    {
+        [Tooltip("Resources-relative authored serpent sprite path, without extension.")]
+        public string ResourcePath = string.Empty;
+
+        [Tooltip(
+            "Final serpent sprite width in world units. 0 keeps imported sprite size. " +
+            "Placement Scale is applied after this fit.")]
+        [Min(0f)]
+        public float WorldWidth = 0f;
+
+        [Tooltip(
+            "Where the serpent waits while submerged, relative to its authored emerged Position.")]
+        public Vector2 HiddenOffset =
+            new Vector2(0f, -4.2f);
+
+        [Tooltip("World-space water-surface Y used for the warning ripple.")]
+        public float WaterSurfaceY = -2.65f;
+
+        [Tooltip(
+            "World-space offset of the hittable crystal weak point from the serpent pivot.")]
+        public Vector2 WeakPointOffset =
+            new Vector2(0f, 0.15f);
+
+        [Tooltip("World-space weak-point radius.")]
+        [Min(0.10f)]
+        public float WeakPointRadius = 0.45f;
+
+        [Tooltip("CrystalGate unlock group activated by a successful weak-point hit.")]
+        public string UnlockGroupId = "default";
+
+        [Tooltip(
+            "Normally false in first-teach encounters so the same arrow continues through the newly opened route.")]
+        public bool ConsumeArrowOnWeakPoint = false;
+
+        public int SortingOrder = 8;
+
+        [Min(0f)]
+        public float StartDelay = 0.35f;
+
+        [Min(0.05f)]
+        public float WarningDuration = 0.65f;
+
+        [Min(0.05f)]
+        public float RiseDuration = 0.52f;
+
+        [Min(0.10f)]
+        public float EmergedDuration = 1.55f;
+
+        [Min(0.05f)]
+        public float RetreatDuration = 0.48f;
+
+        [Min(0.10f)]
+        public float HiddenDuration = 1.35f;
+    }
+
+    [System.Serializable]
+    public sealed class CrystalRiftPairData
+    {
+        [Tooltip("Readable/debug identifier for this linked pair.")]
+        public string PairId = "rift";
+
+        public Vector2 EntryPosition;
+        public float EntryRotation = 0f;
+        public Vector2 EntryScale = Vector2.one;
+
+        public Vector2 ExitPosition;
+        public float ExitRotation = 0f;
+        public Vector2 ExitScale = Vector2.one;
+
+        [Tooltip("Resources-relative entry portal sprite path, without extension.")]
+        public string EntryResourcePath =
+            "Art/Gameplay/World2/Rifts/CrystalRift_Entry";
+
+        [Tooltip("Resources-relative exit portal sprite path, without extension.")]
+        public string ExitResourcePath =
+            "Art/Gameplay/World2/Rifts/CrystalRift_Exit";
+
+        [Tooltip("Final world width of each rift visual before Entry/ExitScale.")]
+        [Min(0.1f)]
+        public float VisualWorldWidth = 2.25f;
+
+        [Tooltip(
+            "World-space radius of the interactive inner portal. " +
+            "This is intentionally smaller than the visible crystal ring.")]
+        [Min(0.15f)]
+        public float TriggerRadius = 0.62f;
+
+        [Tooltip(
+            "Distance the arrow appears just beyond the exit centre, along its preserved travel direction.")]
+        [Min(0f)]
+        public float ExitClearance = 0.35f;
+
+        [Tooltip(
+            "Multiplier applied to the instantaneous velocity magnitude while crossing the rift. " +
+            "1 preserves speed exactly.")]
+        [Range(0.5f, 1.5f)]
+        public float SpeedMultiplier = 1f;
+
+        public int SortingOrder = 10;
+    }
+
 
     // ---------------------------------------------------------------------
     // READ-ONLY PRESENTATION ADAPTER
@@ -250,7 +465,10 @@ public sealed class LevelData : ScriptableObject
         FlyingBird = 6,
         ResonanceCrystal = 7,
         CrystalGate = 8,
-        PrismCrystal = 9
+        PrismCrystal = 9,
+        VanishingObstacle = 10,
+        AbyssalSerpent = 11,
+        CrystalRift = 12
     }
 
     public sealed class LevelObjectData
@@ -274,10 +492,17 @@ public sealed class LevelData : ScriptableObject
         int resonanceCount = ResonanceCrystals != null ? ResonanceCrystals.Length : 0;
         int crystalGateCount = CrystalGates != null ? CrystalGates.Length : 0;
         int prismCount = PrismCrystals != null ? PrismCrystals.Length : 0;
+        int vanishingObstacleCount =
+            VanishingObstacles != null ? VanishingObstacles.Length : 0;
+        int abyssalSerpentCount =
+            AbyssalSerpents != null ? AbyssalSerpents.Length : 0;
+        int crystalRiftCount =
+            CrystalRifts != null ? CrystalRifts.Length : 0;
 
         LevelObjectData[] result = new LevelObjectData[
             targetCount + wallCount + mirrorCount + bonusCount + collectibleCount +
-            gateCount + birdCount + resonanceCount + crystalGateCount + prismCount];
+            gateCount + birdCount + resonanceCount + crystalGateCount + prismCount +
+            vanishingObstacleCount + abyssalSerpentCount + crystalRiftCount];
 
         int index = 0;
         for (int i = 0; i < targetCount; i++) result[index++] = new LevelObjectData { Type = ObjectType.Target };
@@ -301,6 +526,9 @@ public sealed class LevelData : ScriptableObject
         for (int i = 0; i < resonanceCount; i++) result[index++] = new LevelObjectData { Type = ObjectType.ResonanceCrystal };
         for (int i = 0; i < crystalGateCount; i++) result[index++] = new LevelObjectData { Type = ObjectType.CrystalGate };
         for (int i = 0; i < prismCount; i++) result[index++] = new LevelObjectData { Type = ObjectType.PrismCrystal };
+        for (int i = 0; i < vanishingObstacleCount; i++) result[index++] = new LevelObjectData { Type = ObjectType.VanishingObstacle };
+        for (int i = 0; i < abyssalSerpentCount; i++) result[index++] = new LevelObjectData { Type = ObjectType.AbyssalSerpent };
+        for (int i = 0; i < crystalRiftCount; i++) result[index++] = new LevelObjectData { Type = ObjectType.CrystalRift };
 
         return result;
     }

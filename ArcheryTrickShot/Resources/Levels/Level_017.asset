@@ -1,0 +1,119 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6893232cd05807d4ba9e180501d88967, type: 3}
+  m_Name: Level_017
+  m_EditorClassIdentifier: Assembly-CSharp::LevelData
+  LevelNumber: 17
+  MaxShots: 3
+  IsGameFinale: 0
+  ThreeStarShotLimit: 1
+  ArcherPosition: {x: -6.3, y: -1.1}
+  RequiredCharacterId: nerissa
+  MaxRewardedRicochetMirrors: 0
+  Targets:
+  - Position: {x: 8.59, y: -1.16}
+    Rotation: 0
+    Scale: {x: 0.34, y: 0.34}
+    Facing: 0
+    Style: 2
+    HidePedestalBase: 1
+  Walls: []
+  Mirrors: []
+  BonusProps: []
+  Collectibles: []
+  Gates: []
+  FlyingBirds: []
+  PresentationSprites:
+  - Position: {x: -8.94, y: -3.7}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: Deep_LeftPlatform
+    ResourcePath: Art/Gameplay/World2/Environment/CrystalPlatform_Left
+    WorldWidth: 7
+    Depth: 0.14
+    SortingOrder: 2
+    FlipX: 0
+    FlipY: 0
+  - Position: {x: 0.1, y: 0.51}
+    Rotation: 0
+    Scale: {x: 1.4, y: 1.1}
+    Name: Rift_MidBlocker
+    ResourcePath: Art/Gameplay/World2/Environment/CrystalRock_Mound
+    WorldWidth: 7
+    Depth: -0.03
+    SortingOrder: 9
+    FlipX: 0
+    FlipY: 0
+  - Position: {x: 8.2, y: -4.05}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: Deep_RightTargetLedge
+    ResourcePath: Art/Gameplay/World2/Environment/CrystalLedge_Right
+    WorldWidth: 7
+    Depth: 0.14
+    SortingOrder: 2
+    FlipX: 0
+    FlipY: 0
+  PresentationColliders:
+  - Position: {x: 0.15, y: 0.05}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: Rift_MidBlocker_Collision
+    MatchVisual: Rift_MidBlocker
+    Shape: 1
+    Size: {x: 1, y: 1}
+    Offset: {x: 0, y: 0}
+    Points:
+    - {x: -6.901608, y: -3.645819}
+    - {x: -4.872032, y: -1.98267031}
+    - {x: -4.624279, y: -1.05682826}
+    - {x: -3.29083157, y: -0.234198928}
+    - {x: -2.51783371, y: 0.928976059}
+    - {x: -1.53200531, y: 2.95765328}
+    - {x: -0.09205276, y: 3.68824}
+    - {x: 0.46103, y: 3.28253}
+    - {x: 1.75191, y: 2.30515}
+    - {x: 3.04279, y: 1.32776}
+    - {x: 4.33368, y: 0.14753}
+    - {x: 5.34794, y: -1.01426}
+    - {x: 6.34822, y: -3.986365}
+    IsTrigger: 0
+  - Position: {x: 0.08957, y: 2.06014}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: Deep_RightLedge_Collision
+    MatchVisual: Deep_RightTargetLedge
+    Shape: 0
+    Size: {x: 10.39029, y: 1.61229}
+    Offset: {x: 0, y: 0}
+    Points: []
+    IsTrigger: 0
+  ResonanceCrystals: []
+  CrystalGates: []
+  PrismCrystals: []
+  VanishingObstacles: []
+  AbyssalSerpents: []
+  CrystalRifts:
+  - PairId: deep_rift_01
+    EntryPosition: {x: -2.27, y: -3.83}
+    EntryRotation: 0
+    EntryScale: {x: 1, y: 1}
+    ExitPosition: {x: 2.38, y: 4.08}
+    ExitRotation: 0
+    ExitScale: {x: 1, y: 1}
+    EntryResourcePath: Art/Gameplay/World2/Rifts/CrystalRift_Entry
+    ExitResourcePath: Art/Gameplay/World2/Rifts/CrystalRift_Exit
+    VisualWorldWidth: 2.25
+    TriggerRadius: 0.62
+    ExitClearance: 0.35
+    SpeedMultiplier: 1
+    SortingOrder: 10

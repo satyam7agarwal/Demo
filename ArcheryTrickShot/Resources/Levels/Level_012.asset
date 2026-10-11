@@ -33,7 +33,7 @@ MonoBehaviour:
   Gates: []
   FlyingBirds: []
   PresentationSprites:
-  - Position: {x: -8.3, y: -3.7}
+  - Position: {x: -8.94, y: -3.7}
     Rotation: 0
     Scale: {x: 1, y: 1}
     Name: Entrance_LeftPlatform

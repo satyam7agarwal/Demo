@@ -23,13 +23,19 @@ public readonly struct FlyingBirdHitResult
 
 /// <summary>
 /// Deterministic moving guardian target. It never uses random movement.
-/// Its unlock group and arrow-consumption behavior are fully data-driven.
+/// Its unlock group, visual and arrow-consumption behavior are fully data-driven.
 /// </summary>
 [RequireComponent(typeof(SpriteRenderer))]
 [RequireComponent(typeof(CapsuleCollider2D))]
 public sealed class FlyingBirdTarget : MonoBehaviour
 {
     public event Action<FlyingBirdHitResult> Hit;
+
+    public string UnlockGroupId =>
+        unlockGroupId ?? string.Empty;
+
+    public bool IsConsumed =>
+        consumed;
 
     private SpriteRenderer birdRenderer;
     private CapsuleCollider2D triggerCollider;
@@ -60,7 +66,8 @@ public sealed class FlyingBirdTarget : MonoBehaviour
         float configuredBobAmplitude,
         float configuredBobSpeed,
         string configuredUnlockGroupId,
-        bool configuredConsumeArrowOnHit)
+        bool configuredConsumeArrowOnHit,
+        Vector2 configuredHitboxWorldSize = default)
     {
         birdRenderer ??=
             GetComponent<SpriteRenderer>();
@@ -130,10 +137,39 @@ public sealed class FlyingBirdTarget : MonoBehaviour
             triggerCollider.direction =
                 CapsuleDirection2D.Horizontal;
 
-            triggerCollider.size =
-                new Vector2(
-                    1.48f,
-                    0.72f);
+            bool useWorldHitbox =
+                configuredHitboxWorldSize.x > 0.001f &&
+                configuredHitboxWorldSize.y > 0.001f;
+
+            if (useWorldHitbox)
+            {
+                Vector3 lossyScale =
+                    transform.lossyScale;
+
+                float safeX =
+                    Mathf.Max(
+                        0.0001f,
+                        Mathf.Abs(lossyScale.x));
+
+                float safeY =
+                    Mathf.Max(
+                        0.0001f,
+                        Mathf.Abs(lossyScale.y));
+
+                triggerCollider.size =
+                    new Vector2(
+                        configuredHitboxWorldSize.x / safeX,
+                        configuredHitboxWorldSize.y / safeY);
+            }
+            else
+            {
+                // Preserve every existing level's legacy hitbox unless the
+                // LevelData explicitly opts into a world-space creature box.
+                triggerCollider.size =
+                    new Vector2(
+                        1.48f,
+                        0.72f);
+            }
         }
     }
 
