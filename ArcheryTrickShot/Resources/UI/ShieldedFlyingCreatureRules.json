@@ -1,0 +1,13 @@
+{
+  "rules": [
+    {
+      "unlockGroupPrefix": "shielded_",
+      "radius": 1.25,
+      "sortingOrder": 14,
+      "pulseSpeed": 2.35,
+      "rotationSpeed": 7.0,
+      "visualResourcePath": "Art/Gameplay/World2/Effects/SanctumFlyingShield",
+      "visualWorldWidth": 3.15
+    }
+  ]
+}

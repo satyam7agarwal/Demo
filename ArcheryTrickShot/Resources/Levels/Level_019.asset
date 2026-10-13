@@ -1,0 +1,150 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6893232cd05807d4ba9e180501d88967, type: 3}
+  m_Name: Level_019
+  m_EditorClassIdentifier: Assembly-CSharp::LevelData
+  LevelNumber: 19
+  MaxShots: 3
+  IsGameFinale: 0
+  ThreeStarShotLimit: 1
+  ArcherPosition: {x: -6.3, y: -1.1}
+  RequiredCharacterId: nerissa
+  MaxRewardedRicochetMirrors: 0
+  Targets:
+  - Position: {x: 8.45, y: -0.95}
+    Rotation: 0
+    Scale: {x: 0.34, y: 0.34}
+    Facing: 0
+    Style: 2
+    HidePedestalBase: 1
+  Walls: []
+  Mirrors: []
+  BonusProps: []
+  Collectibles: []
+  Gates: []
+  FlyingBirds: []
+  PresentationSprites:
+  - Position: {x: -8.94, y: -3.7}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: Sanctum_LeftPlatform
+    ResourcePath: Art/Gameplay/World2/Environment/CrystalPlatform_Left
+    WorldWidth: 7
+    Depth: 0.14
+    SortingOrder: 2
+    FlipX: 0
+    FlipY: 0
+  - Position: {x: 0.35, y: -3.79}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: Sanctum_AbyssWater
+    ResourcePath: Art/Gameplay/World2/Environment/CrystalLake_Foreground
+    WorldWidth: 14.8
+    Depth: 0.08
+    SortingOrder: 1
+    FlipX: 0
+    FlipY: 0
+  - Position: {x: 5.5, y: -1.3}
+    Rotation: 0
+    Scale: {x: 1.2, y: 1.4}
+    Name: Sanctum_PrismBlocker
+    ResourcePath: Art/Gameplay/World2/Environment/CrystalRock_Mound
+    WorldWidth: 3.5
+    Depth: 0.05
+    SortingOrder: 7
+    FlipX: 0
+    FlipY: 0
+  - Position: {x: 8.2, y: -4.05}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: Sanctum_RightTargetLedge
+    ResourcePath: Art/Gameplay/World2/Environment/CrystalLedge_Right
+    WorldWidth: 7
+    Depth: 0.14
+    SortingOrder: 5
+    FlipX: 0
+    FlipY: 0
+  PresentationColliders:
+  - Position: {x: 0.08957, y: 2.06014}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: Sanctum_RightLedge_Collision
+    MatchVisual: Sanctum_RightTargetLedge
+    Shape: 0
+    Size: {x: 10.39029, y: 1.61229}
+    Offset: {x: 0, y: 0}
+    Points: []
+    IsTrigger: 0
+  - Position: {x: 0, y: 0}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: Sanctum_PrismBlocker_Collision
+    MatchVisual: Sanctum_PrismBlocker
+    Shape: 1
+    Size: {x: 1, y: 1}
+    Offset: {x: 0, y: 0}
+    Points:
+    - {x: -6.901608, y: -3.645819}
+    - {x: -4.872032, y: -1.98267031}
+    - {x: -4.624279, y: -1.05682826}
+    - {x: -3.29083157, y: -0.234198928}
+    - {x: -2.51783371, y: 0.928976059}
+    - {x: -1.53200531, y: 2.95765328}
+    - {x: -0.1667439, y: 3.314784}
+    - {x: 1.432015, y: 3.170493}
+    - {x: 1.75191, y: 2.30515}
+    - {x: 3.04279, y: 1.32776}
+    - {x: 4.33368, y: 0.14753}
+    - {x: 5.34794, y: -1.01426}
+    - {x: 6.34822, y: -3.986365}
+    IsTrigger: 0
+    ResonanceCrystals: []
+  CrystalGates:
+  - Position: {x: 1.25, y: 2.76}
+    Rotation: 0
+    Scale: {x: 0.42, y: 1.25}
+    UnlockGroupId: sanctum_serpent_gate
+    OpenOffset: {x: 0, y: 3.75}
+    OpenDuration: 0.12
+    VisualResourcePath: Art/Gameplay/World2/Environment/CrystalGate_Roost
+    VisualWorldWidth: 2.25
+    VisualOffset: {x: 0, y: 0.05}
+    HideDefaultVisual: 1
+    VisualSortingOrder: 9
+  PrismCrystals:
+  - Position: {x: 3.3, y: 3}
+    Rotation: 0
+    Scale: {x: 0.36, y: 0.36}
+    ExitAngle: -27
+    SpeedMultiplier: 1.15
+    TriggerRadius: 0.45
+  VanishingObstacles: []
+  AbyssalSerpents:
+  - Position: {x: -2.45, y: -0.35}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    ResourcePath: Art/Gameplay/World2/Creatures/AbyssalCrystalSerpent_Left
+    WorldWidth: 5.05
+    HiddenOffset: {x: 0, y: -4.55}
+    WaterSurfaceY: -2.7
+    WeakPointOffset: {x: 0.82, y: 0.56}
+    WeakPointRadius: 0.55
+    UnlockGroupId: sanctum_serpent_gate
+    ConsumeArrowOnWeakPoint: 0
+    SortingOrder: 8
+    StartDelay: 0.35
+    WarningDuration: 0.65
+    RiseDuration: 0.52
+    EmergedDuration: 1.7
+    RetreatDuration: 0.48
+    HiddenDuration: 1.35
+  CrystalRifts: []

@@ -58,13 +58,32 @@ public sealed class CrystalGateRuntime : MonoBehaviour
 
         opened = true;
 
+        // Gameplay opens immediately.
+        //
+        // Several Crystal Caverns puzzles deliberately continue the SAME arrow
+        // after it activates a serpent weak point / resonance source. Keeping
+        // collision active during the decorative gate charge created a race:
+        // the successful arrow could reach the gate before its opening
+        // animation completed and be incorrectly resolved as a miss.
+        //
+        // Disable physical blocking first; the visual leaves still perform
+        // their authored opening animation below.
+        SetCollisionEnabled(false);
+
         if (routine != null)
             StopCoroutine(routine);
+
+        // Preserve only a tiny readable response delay. The old caller passes
+        // 0.20s, which is too long for same-arrow chain puzzles.
+        float visualDelay =
+            Mathf.Min(
+                Mathf.Max(0f, delay),
+                0.04f);
 
         routine =
             StartCoroutine(
                 OpenRoutine(
-                    Mathf.Max(0f, delay)));
+                    visualDelay));
     }
 
     private IEnumerator OpenRoutine(
@@ -168,20 +187,33 @@ public sealed class CrystalGateRuntime : MonoBehaviour
         if (bottomHalf != null)
             bottomHalf.localPosition = bottomEnd;
 
-        // Once the two leaves are visually clear, disable their collision
-        // entirely. This removes any edge-case grazing against a moving gate.
-        if (colliders != null)
-        {
-            for (int i = 0;
-                 i < colliders.Length;
-                 i++)
-            {
-                if (colliders[i] != null)
-                    colliders[i].enabled = false;
-            }
-        }
+        // Keep this idempotent safety call in case future gate variants add
+        // colliders after Open() begins.
+        SetCollisionEnabled(false);
 
         routine = null;
+    }
+
+    private void SetCollisionEnabled(
+        bool enabled)
+    {
+        if (colliders == null)
+        {
+            colliders =
+                GetComponentsInChildren<
+                    Collider2D>(true);
+        }
+
+        if (colliders == null)
+            return;
+
+        for (int i = 0;
+             i < colliders.Length;
+             i++)
+        {
+            if (colliders[i] != null)
+                colliders[i].enabled = enabled;
+        }
     }
 
     private void ApplyChargeVisual(

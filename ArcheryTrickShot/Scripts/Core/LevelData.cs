@@ -261,6 +261,12 @@ public sealed class LevelData : ScriptableObject
     [System.Serializable]
     public sealed class CrystalGateData : PlacementData
     {
+        [Tooltip(
+            "Overall scale of the complete CrystalGate root. " +
+            "This scales the authored visual, physical leaves, colliders and opening motion together. " +
+            "(1,1) preserves existing behaviour.")]
+        public Vector2 RootScale = Vector2.one;
+
         public string UnlockGroupId = "default";
         public Vector2 OpenOffset = new Vector2(0f, 3.2f);
         [Min(0.08f)] public float OpenDuration = 0.24f;

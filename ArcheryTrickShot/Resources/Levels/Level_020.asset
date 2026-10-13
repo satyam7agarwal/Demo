@@ -1,0 +1,190 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6893232cd05807d4ba9e180501d88967, type: 3}
+  m_Name: Level_020
+  m_EditorClassIdentifier: Assembly-CSharp::LevelData
+  LevelNumber: 20
+  MaxShots: 4
+  IsGameFinale: 0
+  ThreeStarShotLimit: 1
+  ArcherPosition: {x: -6.3, y: -1.1}
+  RequiredCharacterId: nerissa
+  MaxRewardedRicochetMirrors: 0
+  Targets:
+  - Position: {x: 8.92, y: -0.29}
+    Rotation: 0
+    Scale: {x: 0.34, y: 0.34}
+    Facing: 0
+    Style: 2
+    HidePedestalBase: 1
+  Walls: []
+  Mirrors: []
+  BonusProps: []
+  Collectibles: []
+  Gates: []
+  FlyingBirds:
+  - Position: {x: -3.45, y: 1.17}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    UnlockGroupId: shielded_core_guardian
+    PatrolWidth: 2.25
+    PatrolSpeed: 0.82
+    BobAmplitude: 0.12
+    BobSpeed: 1.65
+    ConsumeArrowOnHit: 1
+    VisualResourcePath: Art/Gameplay/World2/Creatures/CrystalBat_Guardian
+    AlternateVisualResourcePath: Art/Gameplay/World2/Creatures/CrystalBat_Guardian_Down
+    VisualWorldWidth: 2.35
+    HitboxWorldSize: {x: 1.45, y: 0.82}
+  PresentationSprites:
+  - Position: {x: -8.94, y: -3.7}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: Core_LeftPlatform
+    ResourcePath: Art/Gameplay/World2/Environment/CrystalPlatform_Left
+    WorldWidth: 7
+    Depth: 0.14
+    SortingOrder: 2
+    FlipX: 0
+    FlipY: 0
+  - Position: {x: 0.35, y: -3.79}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: Core_AbyssWater
+    ResourcePath: Art/Gameplay/World2/Environment/CrystalLake_Foreground
+    WorldWidth: 14.8
+    Depth: 0.08
+    SortingOrder: 1
+    FlipX: 0
+    FlipY: 0
+  - Position: {x: -2.1, y: -3.24}
+    Rotation: 0
+    Scale: {x: 0.82, y: 2.15}
+    Name: Core_RiftBarrierSpire
+    ResourcePath: Art/Gameplay/World2/Environment/CrystalSpire_Tall
+    WorldWidth: 2.15
+    Depth: 0.03
+    SortingOrder: 7
+    FlipX: 0
+    FlipY: 0
+  - Position: {x: 5.6, y: -3.25}
+    Rotation: 0
+    Scale: {x: 0.82, y: 0.82}
+    Name: Core_PrismRoost
+    ResourcePath: Art/Gameplay/World2/Environment/CrystalRoost_Floating
+    WorldWidth: 3.3
+    Depth: 0.12
+    SortingOrder: 4
+    FlipX: 0
+    FlipY: 0
+  - Position: {x: 8.25, y: -2.95}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: Core_RightTargetLedge
+    ResourcePath: Art/Gameplay/World2/Environment/CrystalLedge_Right
+    WorldWidth: 7
+    Depth: 0.14
+    SortingOrder: 5
+    FlipX: 0
+    FlipY: 0
+  PresentationColliders:
+  - Position: {x: 0.08957, y: 2.06014}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: Core_RightLedge_Collision
+    MatchVisual: Core_RightTargetLedge
+    Shape: 0
+    Size: {x: 10.39029, y: 1.61229}
+    Offset: {x: 0, y: 0}
+    Points: []
+    IsTrigger: 0
+  - Position: {x: -2.1, y: 0}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: Core_RiftBarrierSpire_Collision
+    MatchVisual: 
+    Shape: 0
+    Size: {x: 0.5, y: 6.1}
+    Offset: {x: 0, y: -3.2}
+    Points: []
+    IsTrigger: 0
+  ResonanceCrystals: []
+  CrystalGates:
+  - Position: {x: 5.6, y: -0.9}
+    Rotation: 0
+    Scale: {x: 0.42, y: 1.25}
+    RootScale: {x: 1.2, y: 1.3}
+    UnlockGroupId: core_serpent_gate
+    OpenOffset: {x: 0, y: 3.85}
+    OpenDuration: 0.12
+    VisualResourcePath: Art/Gameplay/World2/Environment/CrystalGate_Roost
+    VisualWorldWidth: 2.25
+    VisualOffset: {x: 0, y: 0.05}
+    HideDefaultVisual: 1
+    VisualSortingOrder: 9
+  PrismCrystals:
+  - Position: {x: 6.91, y: 1.69}
+    Rotation: 0
+    Scale: {x: 0.36, y: 0.36}
+    ExitAngle: -30
+    SpeedMultiplier: 1.15
+    TriggerRadius: 0.45
+  VanishingObstacles:
+  - Position: {x: 50, y: -20}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    ResourcePath: Art/Gameplay/World2/Environment/CrystalObelisk_Vanishing
+    WorldWidth: 0.5
+    HitboxWorldSize: {x: 0.2, y: 0.2}
+    HitboxOffset: {x: 0, y: 0}
+    SortingOrder: 9
+    StartDelay: 0.25
+    VisibleDuration: 0.85
+    WarningDuration: 0.38
+    DisappearDuration: 0.22
+    HiddenDuration: 1.45
+    ReappearWarningDuration: 0.28
+    ReappearDuration: 0.27
+  AbyssalSerpents:
+  - Position: {x: 2.3, y: -0.85}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    ResourcePath: Art/Gameplay/World2/Creatures/AbyssalCrystalSerpent_Left
+    WorldWidth: 4
+    HiddenOffset: {x: 0, y: -4.55}
+    WaterSurfaceY: -2.7
+    WeakPointOffset: {x: 0.72, y: 0.5}
+    WeakPointRadius: 0.5
+    UnlockGroupId: core_serpent_gate
+    ConsumeArrowOnWeakPoint: 0
+    SortingOrder: 8
+    StartDelay: 0.25
+    WarningDuration: 0.58
+    RiseDuration: 0.48
+    EmergedDuration: 1.7
+    RetreatDuration: 0.45
+    HiddenDuration: 1.25
+  CrystalRifts:
+  - PairId: core_final_rift
+    EntryPosition: {x: -2.77, y: 3.23}
+    EntryRotation: 0
+    EntryScale: {x: 0.9, y: 0.9}
+    ExitPosition: {x: 0.07, y: -3.03}
+    ExitRotation: 0
+    ExitScale: {x: 0.9, y: 0.9}
+    EntryResourcePath: Art/Gameplay/World2/Rifts/CrystalRift_Entry
+    ExitResourcePath: Art/Gameplay/World2/Rifts/CrystalRift_Exit
+    VisualWorldWidth: 2.05
+    TriggerRadius: 0.58
+    ExitClearance: 0.35
+    SpeedMultiplier: 0.96
+    SortingOrder: 10

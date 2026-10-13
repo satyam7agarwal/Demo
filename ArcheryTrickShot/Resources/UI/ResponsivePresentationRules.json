@@ -1,0 +1,19 @@
+{
+  "rules": [
+    {
+      "resourcePath": "Art/Gameplay/World2/Environment/CrystalPlatform_Left",
+      "fill": 1,
+      "bleed": 0.45
+    },
+    {
+      "resourcePath": "Art/Gameplay/World2/Environment/CrystalLedge_Right",
+      "fill": 2,
+      "bleed": 0.45
+    },
+    {
+      "resourcePath": "Art/Gameplay/World2/Environment/CrystalLake_Foreground",
+      "fill": 3,
+      "bleed": 0.3
+    }
+  ]
+}
