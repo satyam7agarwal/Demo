@@ -1,0 +1,78 @@
+{
+  "chapterTitle": "WILDHEART GROVE",
+  "chapterSubtitle": "WAKE THE JUNGLE. MAKE IT MOVE.",
+  "mapWidth": 1000,
+  "mapHeight": 600,
+  "nodes": [
+    {
+      "level": 21,
+      "x": 105,
+      "y": 450,
+      "title": "WELCOME TO WILDHEART",
+      "subtitle": "Cut the holding vine. Let the heavy seed power the lift."
+    },
+    {
+      "level": 22,
+      "x": 205,
+      "y": 390,
+      "title": "MUSHROOM MAYHEM",
+      "subtitle": "Use the jungle's springy surprises."
+    },
+    {
+      "level": 23,
+      "x": 315,
+      "y": 330,
+      "title": "MONKEY BUSINESS",
+      "subtitle": "The jungle residents have plans of their own."
+    },
+    {
+      "level": 24,
+      "x": 430,
+      "y": 255,
+      "title": "RIVER RUN",
+      "subtitle": "Time the crossing through the rushing basin."
+    },
+    {
+      "level": 25,
+      "x": 555,
+      "y": 185,
+      "title": "BEEHIVE PANIC",
+      "subtitle": "One shot can wake the whole jungle."
+    },
+    {
+      "level": 26,
+      "x": 675,
+      "y": 245,
+      "title": "VINE SWING",
+      "subtitle": "Release the vine and reshape the route."
+    },
+    {
+      "level": 27,
+      "x": 785,
+      "y": 325,
+      "title": "ROLLING TROUBLE",
+      "subtitle": "Set the heavy logs in motion."
+    },
+    {
+      "level": 28,
+      "x": 710,
+      "y": 435,
+      "title": "FIREFLY FESTIVAL",
+      "subtitle": "Follow the living lights."
+    },
+    {
+      "level": 29,
+      "x": 825,
+      "y": 500,
+      "title": "JUNGLE CHAOS",
+      "subtitle": "Turn the grove into one giant chain reaction."
+    },
+    {
+      "level": 30,
+      "x": 930,
+      "y": 405,
+      "title": "THE GREAT GROVE PARTY",
+      "subtitle": "Finish Wildheart with one spectacular jungle stunt."
+    }
+  ]
+}

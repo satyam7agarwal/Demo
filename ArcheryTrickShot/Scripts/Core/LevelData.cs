@@ -85,6 +85,13 @@ public sealed class LevelData : ScriptableObject
     public CrystalRiftPairData[] CrystalRifts =
         new CrystalRiftPairData[0];
 
+    [Header("Wildheart Grove")]
+    [Tooltip(
+        "Heavy seed-pod counterweight mechanisms. Shoot the holding lock OR strike the pod directly " +
+        "to release it; the pod must descend as the counterweight while the linked platform/target rise.")]
+    public WildheartCounterweightData[] WildheartCounterweights =
+        new WildheartCounterweightData[0];
+
     public enum CollectibleStyle
     {
         GoldenMedallion = 0
@@ -457,6 +464,127 @@ public sealed class LevelData : ScriptableObject
     }
 
 
+    [System.Serializable]
+    public sealed class WildheartCounterweightData
+    {
+        [Tooltip("Readable/debug identifier for this mechanism.")]
+        public string MechanismId = "wildheart_counterweight";
+
+        [Header("Heavy Seed Pod")]
+        public Vector2 SeedPosition =
+            new Vector2(-1.5f, 2.5f);
+
+        public Vector2 SeedScale =
+            Vector2.one;
+
+        [Tooltip(
+            "Resources-relative sprite used for the heavy pod. " +
+            "This can be replaced later without changing the mechanic.")]
+        public string SeedVisualResourcePath =
+            "Art/BonusProps/ClayPot";
+
+        [Tooltip("Final world width of the seed-pod visual before SeedScale.")]
+        [Min(0.1f)]
+        public float SeedWorldWidth = 1.55f;
+
+        [Tooltip(
+            "World-space solid capsule size for the heavy seed pod. " +
+            "A direct arrow hit releases the same counterweight mechanism instead of passing through the art.")]
+        public Vector2 SeedColliderWorldSize =
+            new Vector2(1.30f, 1.65f);
+
+        [Tooltip("World-space collider offset relative to the seed-pod pivot.")]
+        public Vector2 SeedColliderWorldOffset =
+            new Vector2(0f, -0.04f);
+
+        [Tooltip(
+            "When true, striking the heavy seed pod directly releases the mechanism. " +
+            "The seed still has to descend over time; the target/platform rise only through that same motion.")]
+        public bool DirectSeedHitReleases = true;
+
+        [Header("Release Latch")]
+        [Tooltip(
+            "World-space centre of the short holding vine/latch that restrains the heavy pod. " +
+            "The player shoots THIS latch; the seed itself is not the release trigger.")]
+        public Vector2 ReleaseLatchPosition =
+            new Vector2(-1.5f, 3.18f);
+
+        [Tooltip("World-space arrow hitbox for the holding vine/latch.")]
+        public Vector2 ReleaseLatchHitboxWorldSize =
+            new Vector2(0.62f, 0.30f);
+
+        [Tooltip("Visible length used only by the legacy fallback latch marker.")]
+        [Min(0.15f)]
+        public float ReleaseLatchVisualLength = 0.72f;
+
+        [Tooltip(
+            "Resources-relative authored sprite for the breakable pulley lock. " +
+            "When empty, the older line-marker presentation is used as a fallback.")]
+        public string ReleaseLatchVisualResourcePath =
+            "Art/Gameplay/World3/Props/Wildheart_BreakableLatch";
+
+        [Tooltip("Optional left broken half used for the hit reaction.")]
+        public string ReleaseLatchBrokenLeftResourcePath =
+            "Art/Gameplay/World3/Props/Wildheart_BreakableLatch_Left";
+
+        [Tooltip("Optional right broken half used for the hit reaction.")]
+        public string ReleaseLatchBrokenRightResourcePath =
+            "Art/Gameplay/World3/Props/Wildheart_BreakableLatch_Right";
+
+        [Tooltip("Final world width of the authored breakable latch.")]
+        [Min(0.25f)]
+        public float ReleaseLatchWorldWidth = 1.55f;
+
+        [Tooltip(
+            "How far the released seed travels. For a 1:1 pulley this should be " +
+            "the opposite of LiftOffset.")]
+        public Vector2 SeedDropOffset =
+            new Vector2(0f, -4.6f);
+
+        [Header("Pulley Geometry")]
+        public Vector2 LeftPulleyPosition =
+            new Vector2(-0.65f, 3.85f);
+
+        public Vector2 RightPulleyPosition =
+            new Vector2(6.25f, 3.85f);
+
+        [Min(0.08f)]
+        public float PulleyRadius = 0.34f;
+
+        [Header("Lifted Gameplay Objects")]
+        [Tooltip(
+            "Index into LevelData.Walls. This wall is treated as the moving lift platform.")]
+        [Min(0)]
+        public int LiftWallIndex = 1;
+
+        [Tooltip(
+            "Index into LevelData.Targets. The target rises together with the lift platform.")]
+        [Min(0)]
+        public int TargetIndex = 0;
+
+        [Tooltip(
+            "World-space movement applied to both the lift wall and target when the seed drops.")]
+        public Vector2 LiftOffset =
+            new Vector2(0f, 4.6f);
+
+        [Min(0.1f)]
+        public float MoveDuration = 0.78f;
+
+        [Tooltip(
+            "When true, the arrow is consumed by the release trigger. Keep false for breakable " +
+            "latches so the arrow visibly punches through instead of stopping on an invisible trigger.")]
+        public bool ConsumeArrowOnRelease = false;
+
+        [Tooltip(
+            "Target collision stays disabled until the lift finishes. The target begins behind " +
+            "real blocking geometry, while this also prevents edge-case early scoring.")]
+        public bool LockTargetUntilRaised = true;
+
+        public int SortingOrder = 10;
+    }
+
+
+
     // ---------------------------------------------------------------------
     // READ-ONLY PRESENTATION ADAPTER
     // ---------------------------------------------------------------------
@@ -474,7 +602,8 @@ public sealed class LevelData : ScriptableObject
         PrismCrystal = 9,
         VanishingObstacle = 10,
         AbyssalSerpent = 11,
-        CrystalRift = 12
+        CrystalRift = 12,
+        WildheartCounterweight = 13
     }
 
     public sealed class LevelObjectData
@@ -504,11 +633,14 @@ public sealed class LevelData : ScriptableObject
             AbyssalSerpents != null ? AbyssalSerpents.Length : 0;
         int crystalRiftCount =
             CrystalRifts != null ? CrystalRifts.Length : 0;
+        int wildheartCounterweightCount =
+            WildheartCounterweights != null ? WildheartCounterweights.Length : 0;
 
         LevelObjectData[] result = new LevelObjectData[
             targetCount + wallCount + mirrorCount + bonusCount + collectibleCount +
             gateCount + birdCount + resonanceCount + crystalGateCount + prismCount +
-            vanishingObstacleCount + abyssalSerpentCount + crystalRiftCount];
+            vanishingObstacleCount + abyssalSerpentCount + crystalRiftCount +
+            wildheartCounterweightCount];
 
         int index = 0;
         for (int i = 0; i < targetCount; i++) result[index++] = new LevelObjectData { Type = ObjectType.Target };
@@ -535,6 +667,7 @@ public sealed class LevelData : ScriptableObject
         for (int i = 0; i < vanishingObstacleCount; i++) result[index++] = new LevelObjectData { Type = ObjectType.VanishingObstacle };
         for (int i = 0; i < abyssalSerpentCount; i++) result[index++] = new LevelObjectData { Type = ObjectType.AbyssalSerpent };
         for (int i = 0; i < crystalRiftCount; i++) result[index++] = new LevelObjectData { Type = ObjectType.CrystalRift };
+        for (int i = 0; i < wildheartCounterweightCount; i++) result[index++] = new LevelObjectData { Type = ObjectType.WildheartCounterweight };
 
         return result;
     }
