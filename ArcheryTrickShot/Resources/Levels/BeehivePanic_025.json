@@ -1,0 +1,49 @@
+{
+  "MechanismId": "wildheart_angry_bees",
+  "HivePosition": {
+    "x": 0.55,
+    "y": -0.62
+  },
+  "HiveWorldWidth": 2.24,
+  "HiveWorldHeight": 2.92,
+  "VineWorldHeight": 3.38,
+  "DropDistance": 3.3,
+  "DropSeconds": 0.32,
+  "BeeCount": 28,
+  "SwarmDuration": 4.2,
+  "HiveSpritePath": "Art/Gameplay/World3/Props/Wildheart_Beehive",
+  "CrackedHiveSpritePath": "Art/Gameplay/World3/Props/Wildheart_BeehiveCracked",
+  "VineSpritePath": "Art/Gameplay/World3/Props/Wildheart_BeehiveVine",
+  "BeeSpritePath": "Art/Gameplay/World3/Props/Wildheart_Bee",
+  "PollenSpritePath": "Art/Gameplay/World3/Props/Wildheart_BeePollen",
+  "CrackAudioPath": "Audio/SFX/Wildheart_HiveCrack",
+  "BuzzAudioPath": "Audio/SFX/Wildheart_BeeBuzz",
+  "SplashAudioPath": "Audio/SFX/Wildheart_RiverSplash",
+  "WaitingHint": "HIT THE HIVE",
+  "FallingHint": "BEES INCOMING!",
+  "ReadyHint": "TARGET EXPOSED!",
+  "NectarPodPosition": {
+    "x": -4.5,
+    "y": 1.0
+  },
+  "NectarPodWorldWidth": 1.85,
+  "FlowerPosition": {
+    "x": 3.85,
+    "y": 1.65
+  },
+  "FlowerWorldWidth": 2.5,
+  "BeeShieldCenter": {
+    "x": -4.0,
+    "y": -1.3
+  },
+  "BeeShieldRadius": 1.18,
+  "NectarPodSpritePath": "Art/Gameplay/World3/Props/Wildheart_NectarPod",
+  "FlowerSpritePath": "Art/Gameplay/World3/Props/Wildheart_NectarFlowers",
+  "SwarmHint": "SHOOT THE NECTAR!",
+  "DistractedHint": "BEES FLYING AWAY!",
+  "SwarmApproachSeconds": 1.35,
+  "SwarmRedirectSeconds": 1.25,
+  "NectarVineHeight": 2.1,
+  "PetalParticleResourcePath": "Art/Gameplay/World3/Props/Wildheart_PinkPetalParticle",
+  "GlowParticleResourcePath": "Art/Gameplay/World3/Props/Wildheart_GoldenPollenParticle"
+}

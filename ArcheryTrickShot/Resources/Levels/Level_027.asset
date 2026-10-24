@@ -1,0 +1,93 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6893232cd05807d4ba9e180501d88967, type: 3}
+  m_Name: Level_027
+  m_EditorClassIdentifier: Assembly-CSharp::LevelData
+  LevelNumber: 27
+  MaxShots: 4
+  IsGameFinale: 0
+  ThreeStarShotLimit: 3
+  ArcherPosition: {x: -6.28, y: -1.48}
+  RequiredCharacterId: khaem
+  MaxRewardedRicochetMirrors: 0
+  Targets:
+  - Position: {x: 7.28, y: -1.56}
+    Rotation: 0
+    Scale: {x: 0.48, y: 0.48}
+    Facing: 1
+    Style: 0
+    HidePedestalBase: 1
+  Walls: []
+  Mirrors: []
+  BonusProps: []
+  Collectibles: []
+  Gates: []
+  FlyingBirds: []
+  PresentationSprites:
+  - Position: {x: 0, y: -5.18}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: RollingShallowRiver
+    ResourcePath: Art/Gameplay/World3/Props/Wildheart_WaterwheelStream
+    WorldWidth: 21.0
+    Depth: 0.08
+    SortingOrder: 2
+    FlipX: 0
+    FlipY: 0
+  - Position: {x: -4.49, y: -4.97}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: RollingLeftMossBank
+    ResourcePath: Art/Gameplay/World3/Props/Wildheart_WaterwheelLeftBank
+    WorldWidth: 6.85
+    Depth: 0.06
+    SortingOrder: 5
+    FlipX: 0
+    FlipY: 0
+  - Position: {x: 5.29, y: -5.01}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: RollingRightMossBank
+    ResourcePath: Art/Gameplay/World3/Props/Wildheart_WaterwheelRightBank
+    WorldWidth: 6.95
+    Depth: 0.06
+    SortingOrder: 6
+    FlipX: 0
+    FlipY: 0
+  - Position: {x: -6.26, y: -4.97}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: RollingLeftShoreFoam
+    ResourcePath: Art/Gameplay/World3/Props/Wildheart_WaterwheelFoam
+    WorldWidth: 2.1
+    Depth: 0.045
+    SortingOrder: 9
+    FlipX: 0
+    FlipY: 0
+  - Position: {x: 3.15, y: -3.64}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: RollingRightShoreFoam
+    ResourcePath: Art/Gameplay/World3/Props/Wildheart_WaterwheelFoam
+    WorldWidth: 2.0
+    Depth: 0.045
+    SortingOrder: 9
+    FlipX: 1
+    FlipY: 0
+  PresentationColliders: []
+  ResonanceCrystals: []
+  CrystalGates: []
+  PrismCrystals: []
+  VanishingObstacles: []
+  AbyssalSerpents: []
+  CrystalRifts: []
+  WildheartCounterweights: []

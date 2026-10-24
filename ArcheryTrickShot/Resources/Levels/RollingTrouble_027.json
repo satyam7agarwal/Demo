@@ -1,0 +1,85 @@
+{
+  "MechanismId": "wildheart_runaway_log_fork",
+  "LogSpritePath": "Art/Gameplay/World3/Props/Wildheart_RollingLogAmber",
+  "TrackSpritePath": "Art/Gameplay/World3/Props/Wildheart_RollingChute",
+  "GateSpritePath": "Art/Gameplay/World3/Props/Wildheart_RollingRootGate",
+  "BrokenGateSpritePath": "Art/Gameplay/World3/Props/Wildheart_RollingRootGateBroken",
+  "SplinterSpritePath": "Art/Gameplay/World3/Props/Wildheart_RollingSplinter",
+  "PegSpritePath": "Art/Gameplay/World3/Props/Wildheart_RunawayPeg",
+  "LeverSpritePath": "Art/Gameplay/World3/Props/Wildheart_RunawayLever",
+  "RampSpritePath": "Art/Gameplay/World3/Props/Wildheart_RunawayRamp",
+  "RampSupportSpritePath": "Art/Gameplay/World3/Props/Wildheart_RunawayRampSupport",
+  "RumbleAudioPath": "Audio/SFX/Wildheart_RollingRumble",
+  "CrashAudioPath": "Audio/SFX/Wildheart_RollingGateCrash",
+  "SplashAudioPath": "Audio/SFX/Wildheart_RiverSplash",
+  "LogStart": {
+    "x": -1.75,
+    "y": -0.3
+  },
+  "ForkPosition": {
+    "x": 2.12,
+    "y": -1.72
+  },
+  "GateImpact": {
+    "x": 4.03,
+    "y": -1.22
+  },
+  "RiverLanding": {
+    "x": 3.15,
+    "y": -3.86
+  },
+  "PegPosition": {
+    "x": -1.65,
+    "y": 1.3
+  },
+  "LeverPosition": {
+    "x": 0.67,
+    "y": 1.3
+  },
+  "RampPosition": {
+    "x": 2.22,
+    "y": -2.31
+  },
+  "GatePosition": {
+    "x": 4.85,
+    "y": -1.56
+  },
+  "TrackPosition": {
+    "x": 0.85,
+    "y": -1.8
+  },
+  "TrackWidth": 8.65,
+  "LogWidth": 2.04,
+  "LogColliderRadius": 0.83,
+  "PegWidth": 1.3,
+  "PegColliderSize": {
+    "x": 1.05,
+    "y": 1.17
+  },
+  "LeverWidth": 1.65,
+  "LeverColliderSize": {
+    "x": 1.23,
+    "y": 1.55
+  },
+  "RampWidth": 3.0,
+  "RampSupportWidth": 1.55,
+  "GateWidth": 1.42,
+  "GateHeight": 3.83,
+  "GateColliderSize": {
+    "x": 1.14,
+    "y": 3.68
+  },
+  "ForkArrivalSeconds": 10.0,
+  "RampLiftSeconds": 0.42,
+  "LeapSeconds": 0.95,
+  "SplashSeconds": 0.88,
+  "FinalLogDropSeconds": 0.88,
+  "RampRaisedAngle": 28.0,
+  "PegHint": "SHOOT GOLD PEG",
+  "LeverHint": "RED LEVER - ACTIVATE!",
+  "ArmedHint": "RAMP READY!",
+  "FlyingHint": "HERE IT COMES!",
+  "ClearHint": "GATE SMASHED!",
+  "MissedHint": "LOG LOST! RETRYING",
+  "AutoRetrySeconds": 2.3
+}

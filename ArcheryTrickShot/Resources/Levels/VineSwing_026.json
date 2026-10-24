@@ -1,0 +1,36 @@
+{
+  "MechanismId": "wildheart_pendulum_target",
+  "Pivot": {
+    "x": 3.7,
+    "y": 3.2
+  },
+  "RopeLength": 5.28,
+  "SwingAngleDegrees": 34.0,
+  "SwingPeriodSeconds": 4.15,
+  "TargetRiseAboveCradle": 0.88,
+  "CradleWorldWidth": 3.1,
+  "CradleWorldHeight": 1.2,
+  "HoldingVinePosition": {
+    "x": 0.15,
+    "y": 0.68
+  },
+  "HoldingVineWorldHeight": 3.45,
+  "HoldingVineWorldWidth": 0.66,
+  "HoldingVineColliderWidth": 0.63,
+  "HoldingVineColliderHeight": 3.12,
+  "HeldScreenWidth": 1.34,
+  "HeldScreenHeight": 2.45,
+  "HeldScreenOffsetX": -0.72,
+  "LeafCount": 18,
+  "CradleSpritePath": "Art/Gameplay/World3/Props/Wildheart_PendulumCradle",
+  "ScreenSpritePath": "Art/Gameplay/World3/Props/Wildheart_PendulumLeafGate",
+  "AnchorSpritePath": "Art/Gameplay/World3/Props/Wildheart_PendulumAnchor",
+  "HoldingVineSpritePath": "Art/Gameplay/World3/Props/Wildheart_VineSwingCutVine",
+  "LeafSpritePath": "Art/Gameplay/World3/Props/Wildheart_VineSwingLeaf",
+  "SplashSpritePath": "Art/Gameplay/World3/Props/Wildheart_WaterwheelFoam",
+  "SnapAudioPath": "Audio/SFX/Wildheart_BambooCrack",
+  "SwingAudioPath": "Audio/SFX/Wildheart_BambooReady",
+  "SplashAudioPath": "Audio/SFX/Wildheart_RiverSplash",
+  "WaitingHint": "CUT THE HOLDING VINE",
+  "ReleasedHint": "TIME THE SWING"
+}
