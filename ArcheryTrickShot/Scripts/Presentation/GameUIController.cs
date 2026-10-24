@@ -1081,7 +1081,10 @@ public sealed class GameUIController : MonoBehaviour
         int uniqueMirrorCount = 0,
         int medallionCollectedCount = 0,
         int medallionTotalCount = 0,
-        int newlyCollectedMedallionCount = 0)
+        int newlyCollectedMedallionCount = 0,
+        bool isGameFinale = false,
+        int awardedStars = 0,
+        bool isMushroomLevel = false)
     {
         view.ResultPrimaryButton.onClick.RemoveAllListeners();
         view.ResultPrimaryButton.onClick.AddListener(() => { PlayUIClick(); levelManager?.OnResultPrimaryClicked(); });
@@ -1090,15 +1093,21 @@ public sealed class GameUIController : MonoBehaviour
         StopOverlayCoroutine(ref resultRoutine);
         ResetRicochetCombo();
 
-        int stars = CalculateStars(shotsUsed, maxShots);
+        int stars = awardedStars > 0
+            ? Mathf.Clamp(awardedStars, 1, 3)
+            : CalculateStars(shotsUsed, maxShots);
 
         view.ResultTitle.text =
-            GetCelebrationTitle(
-                shotsUsed,
-                isBullseye,
-                ricochetCount,
-                hitLabel,
-                isLastLevel);
+            isMushroomLevel && !isGameFinale && ricochetCount >= 2
+                ? (isBullseye
+                    ? "MUSHROOM BULLSEYE!"
+                    : "DOUBLE MUSHROOM BOUNCE!")
+                : GetCelebrationTitle(
+                    shotsUsed,
+                    isBullseye,
+                    ricochetCount,
+                    hitLabel,
+                    isGameFinale);
 
         view.ResultTitle.color =
             isBullseye
@@ -1121,11 +1130,13 @@ public sealed class GameUIController : MonoBehaviour
 
         string ricochetLabel =
             ricochetCount > 0
-                ? $"{ricochetCount} RICOCHET{(ricochetCount == 1 ? string.Empty : "S")}"
+                ? isMushroomLevel
+                    ? $"{ricochetCount} MUSHROOM BOUNCE{(ricochetCount == 1 ? string.Empty : "S")}"
+                    : $"{ricochetCount} RICOCHET{(ricochetCount == 1 ? string.Empty : "S")}"
                 : string.Empty;
 
         string mirrorLabel =
-            uniqueMirrorCount > 0
+            !isMushroomLevel && uniqueMirrorCount > 0
                 ? $"{uniqueMirrorCount} UNIQUE MIRROR{(uniqueMirrorCount == 1 ? string.Empty : "S")}"
                 : string.Empty;
 
@@ -1180,8 +1191,10 @@ public sealed class GameUIController : MonoBehaviour
 
         view.ResultInfo.text =
             resultDetails;
-        view.ResultPrimaryButtonText.text = isLastLevel ? "PLAY AGAIN  >>" : "NEXT LEVEL  >>";
-        view.ResultReplayButton.gameObject.SetActive(!isLastLevel);
+        view.ResultPrimaryButtonText.text = isLastLevel
+            ? (isGameFinale ? "PLAY AGAIN  >>" : "LEVEL SELECT  >>")
+            : "NEXT LEVEL  >>";
+        view.ResultReplayButton.gameObject.SetActive(!isGameFinale);
 
         resultRoutine = StartCoroutine(
             ShowCompleteOverlay(

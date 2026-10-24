@@ -1,0 +1,56 @@
+{
+  "MechanismId": "bamboo_domino_glade",
+  "FirstShootableIndex": 0,
+  "ReflectorIndex": 2,
+  "HandoffSeconds": 0.33,
+  "ReflectorThickness": 0.34,
+  "ReflectorLengthFraction": 0.89,
+  "Stalks": [
+    {
+      "Id": "first_big_amber",
+      "Pivot": {
+        "x": -2.75,
+        "y": -3.34
+      },
+      "Length": 3.72,
+      "Width": 0.7,
+      "FinalAngleDegrees": -71.0,
+      "FallDuration": 0.61,
+      "SpriteResourcePath": "Art/Gameplay/World3/Props/Wildheart_BambooStalk_Amber",
+      "SortingOrder": 8,
+      "VisualWidthMultiplier": 1.6
+    },
+    {
+      "Id": "middle_jade",
+      "Pivot": {
+        "x": -0.76,
+        "y": -3.34
+      },
+      "Length": 3.62,
+      "Width": 0.68,
+      "FinalAngleDegrees": -70.0,
+      "FallDuration": 0.66,
+      "SpriteResourcePath": "Art/Gameplay/World3/Props/Wildheart_BambooStalk_Jade",
+      "SortingOrder": 9,
+      "VisualWidthMultiplier": 1.6
+    },
+    {
+      "Id": "last_reflective_bamboo",
+      "Pivot": {
+        "x": 1.15,
+        "y": -3.34
+      },
+      "Length": 4.45,
+      "Width": 0.79,
+      "FinalAngleDegrees": -65.0,
+      "FallDuration": 0.78,
+      "SpriteResourcePath": "Art/Gameplay/World3/Props/Wildheart_BambooStalk_Gold",
+      "SortingOrder": 10,
+      "VisualWidthMultiplier": 1.4
+    }
+  ],
+  "CompletionTitle": "BAMBOO DOMINO!",
+  "RicochetNoun": "BAMBOO BOUNCE",
+  "UniqueMirrorNoun": "BAMBOO REFLECTOR",
+  "ChainStartedFeedback": "BAMBOO DOMINO!"
+}

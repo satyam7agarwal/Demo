@@ -29,6 +29,12 @@
       "maxLevel": 23,
       "backgroundResource": "Art/Backgrounds/World3/WildheartGrove_Sunleaf",
       "fallbackResource": "Art/Backgrounds/World2/CrystalCaverns_Sanctum"
+    },
+    {
+      "minLevel": 24,
+      "maxLevel": 27,
+      "backgroundResource": "Art/Backgrounds/World3/WildheartRiverHills",
+      "fallbackResource": "Art/Backgrounds/World3/WildheartGrove_Sunleaf"
     }
   ]
 }

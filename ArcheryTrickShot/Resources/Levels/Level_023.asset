@@ -1,0 +1,73 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6893232cd05807d4ba9e180501d88967, type: 3}
+  m_Name: Level_023
+  m_EditorClassIdentifier: Assembly-CSharp::LevelData
+  LevelNumber: 23
+  MaxShots: 3
+  IsGameFinale: 0
+  ThreeStarShotLimit: 2
+  ArcherPosition: {x: -6.3, y: -1.2}
+  RequiredCharacterId: khaem
+  MaxRewardedRicochetMirrors: 1
+  Targets:
+  - Position: {x: 7.35, y: 2.0}
+    Rotation: 0
+    Scale: {x: 0.59, y: 0.59}
+    Facing: 1
+    Style: 0
+    HidePedestalBase: 1
+  Walls: []
+  Mirrors: []
+  BonusProps: []
+  Collectibles: []
+  Gates: []
+  FlyingBirds: []
+  PresentationSprites:
+  - Position: {x: 0.0, y: 1.13}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: BambooOldTreeBarrier
+    ResourcePath: Art/Gameplay/World3/Props/Wildheart_AncientBambooTree
+    WorldWidth: 1.55
+    Depth: 0.07
+    SortingOrder: 6
+    FlipX: 0
+    FlipY: 0
+  - Position: {x: 7.25, y: 0.98}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: BambooTargetLeafPerch
+    ResourcePath: Art/Gameplay/World3/Props/Wildheart_BambooPerch
+    WorldWidth: 3.1
+    Depth: 0.11
+    SortingOrder: 4
+    FlipX: 0
+    FlipY: 0
+  PresentationColliders:
+  - Position: {x: 0.0, y: 1.30}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: BambooAncientTreeSolid
+    MatchVisual:
+    Shape: 0
+    Size: {x: 1.08, y: 3.66}
+    Offset: {x: 0, y: 0}
+    Points: []
+    IsTrigger: 0
+  ResonanceCrystals: []
+  CrystalGates: []
+  PrismCrystals: []
+  VanishingObstacles: []
+  AbyssalSerpents: []
+  CrystalRifts: []
+  WildheartCounterweights: []

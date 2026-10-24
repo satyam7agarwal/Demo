@@ -1,0 +1,133 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6893232cd05807d4ba9e180501d88967, type: 3}
+  m_Name: Level_022
+  m_EditorClassIdentifier: Assembly-CSharp::LevelData
+  LevelNumber: 22
+  MaxShots: 3
+  IsGameFinale: 0
+  ThreeStarShotLimit: 1
+  ArcherPosition: {x: -6.3, y: -1.2}
+  RequiredCharacterId: khaem
+  MaxRewardedRicochetMirrors: 2
+  Targets:
+  - Position: {x: 7.4, y: -0.74}
+    Rotation: 0
+    Scale: {x: 0.47, y: 0.47}
+    Facing: 0
+    Style: 0
+    HidePedestalBase: 1
+  Walls: []
+  Mirrors: []
+  BonusProps: []
+  Collectibles: []
+  Gates: []
+  FlyingBirds: []
+  PresentationSprites:
+  - Position: {x: -1.91, y: -3.29}
+    Rotation: 20
+    Scale: {x: 1, y: 1}
+    Name: MushroomBounce_Coral_Visual
+    ResourcePath: Art/Gameplay/World3/Props/Wildheart_Mushroom_Coral
+    WorldWidth: 2.85
+    Depth: 0.04
+    SortingOrder: 9
+    FlipX: 0
+    FlipY: 0
+  - Position: {x: 0.47, y: 3.04}
+    Rotation: 20
+    Scale: {x: 1, y: 1}
+    Name: MushroomBounce_Indigo_Visual
+    ResourcePath: Art/Gameplay/World3/Props/Wildheart_Mushroom_Indigo
+    WorldWidth: 2.85
+    Depth: 0.04
+    SortingOrder: 9
+    FlipX: 0
+    FlipY: 1
+  - Position: {x: 4.1, y: -2.15}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: MossyStumpBarrier
+    ResourcePath: Art/Gameplay/World3/Props/Wildheart_MossyStump
+    WorldWidth: 2.3
+    Depth: 0.08
+    SortingOrder: 5
+    FlipX: 0
+    FlipY: 0
+  - Position: {x: 7.38, y: -1.87}
+    Rotation: 2
+    Scale: {x: 1, y: 1}
+    Name: TargetLeafPerch
+    ResourcePath: Art/Gameplay/World3/Props/Wildheart_TargetLeafPerch
+    WorldWidth: 2.9
+    Depth: 0.10
+    SortingOrder: 4
+    FlipX: 0
+    FlipY: 0
+  PresentationColliders:
+  - Position: {x: -2.185, y: -2.556}
+    Rotation: 110.6511
+    Scale: {x: 1, y: 1}
+    Name: MushroomBounce_Coral_Surface
+    MatchVisual: 
+    Shape: 0
+    Size: {x: 0.27, y: 2.22}
+    Offset: {x: 0, y: 0}
+    Points: []
+    IsTrigger: 1
+  - Position: {x: 0.650, y: 2.541}
+    Rotation: -70.6936
+    Scale: {x: 1, y: 1}
+    Name: MushroomBounce_Indigo_Surface
+    MatchVisual: 
+    Shape: 0
+    Size: {x: 0.27, y: 2.22}
+    Offset: {x: 0, y: 0}
+    Points: []
+    IsTrigger: 1
+  - Position: {x: 4.1, y: -2.36}
+    Rotation: 0
+    Scale: {x: 1, y: 1}
+    Name: MossyStump_Solid
+    MatchVisual: 
+    Shape: 0
+    Size: {x: 1.55, y: 4.0}
+    Offset: {x: 0, y: 0}
+    Points: []
+    IsTrigger: 0
+  - Position: {x: -1.55, y: -3.54}
+    Rotation: 18
+    Scale: {x: 1, y: 1}
+    Name: Mushroom_Coral_StemSolid
+    MatchVisual:
+    Shape: 0
+    Size: {x: 0.53, y: 0.83}
+    Offset: {x: 0, y: 0}
+    Points: []
+    IsTrigger: 0
+  - Position: {x: 0.22, y: 3.34}
+    Rotation: 20
+    Scale: {x: 1, y: 1}
+    Name: Mushroom_Indigo_StemSolid
+    MatchVisual:
+    Shape: 0
+    Size: {x: 0.51, y: 1.02}
+    Offset: {x: 0, y: 0}
+    Points: []
+    IsTrigger: 0
+  ResonanceCrystals: []
+  CrystalGates: []
+  PrismCrystals: []
+  VanishingObstacles: []
+  AbyssalSerpents: []
+  CrystalRifts: []
+  WildheartCounterweights: []

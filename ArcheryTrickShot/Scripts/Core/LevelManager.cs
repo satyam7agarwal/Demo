@@ -1110,6 +1110,15 @@ public sealed class LevelManager : MonoBehaviour
         currentState = LevelState.Completed;
 
         bool isLastLevel = currentLevelIndex >= levels.Length - 1;
+        // The last installed level is not necessarily the campaign finale.
+        bool isGameFinale = currentLevel != null && currentLevel.IsGameFinale;
+        // Identify reusable mushroom surfaces from level data, never level ID.
+        bool isMushroomLevel = currentLevel != null &&
+            currentLevel.PresentationColliders != null &&
+            currentLevel.PresentationColliders.Any(item =>
+                item != null && !string.IsNullOrEmpty(item.Name) &&
+                item.Name.StartsWith("MushroomBounce_",
+                    System.StringComparison.Ordinal));
 
         string hitLabel =
             lastTargetHitResult.Zone == TargetHitZone.Invalid
@@ -1145,7 +1154,10 @@ public sealed class LevelManager : MonoBehaviour
             GetRewardedUniqueMirrorCount(),
             GetCurrentLevelCollectedMedallionCount(),
             currentLevelMedallionIds.Count,
-            currentLevelNewMedallionIds.Count);
+            currentLevelNewMedallionIds.Count,
+            isGameFinale,
+            earnedStars,
+            isMushroomLevel);
 
         audioController?.PlayLevelComplete();
         resolutionRoutine = null;
